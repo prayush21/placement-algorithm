@@ -1,0 +1,54 @@
+UCLA nets 1.0
+# Created: 2025-03-31 -- Generated from image netlist
+
+NumNets : 13
+NumPins : 35
+
+NetDegree : 2 n1
+ e B : 0 0
+ f B : 0 0
+NetDegree : 3 n2
+ a B : 0 0
+ e B : 0 0
+ i B : 0 0
+NetDegree : 3 n3
+ b B : 0 0
+ f B : 0 0
+ g B : 0 0
+NetDegree : 3 n4
+ c B : 0 0
+ g B : 0 0
+ l B : 0 0
+NetDegree : 3 n5
+ d B : 0 0
+ l B : 0 0
+ h B : 0 0
+NetDegree : 3 n6
+ e B : 0 0
+ i B : 0 0
+ j B : 0 0
+NetDegree : 2 n7
+ f B : 0 0
+ j B : 0 0
+NetDegree : 3 n8
+ g B : 0 0
+ j B : 0 0
+ k B : 0 0
+NetDegree : 3 n9
+ l B : 0 0
+ o B : 0 0
+ p B : 0 0
+NetDegree : 2 n10
+ h B : 0 0
+ p B : 0 0
+NetDegree : 2 n11
+ i B : 0 0
+ m B : 0 0
+NetDegree : 3 n12
+ j B : 0 0
+ m B : 0 0
+ n B : 0 0
+NetDegree : 3 n13
+ k B : 0 0
+ n B : 0 0
+ o B : 0 0

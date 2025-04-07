@@ -1,0 +1,76 @@
+UCLA nets 1.0
+# Created: 2025-03-30 22:52:00
+# User request: Medium size (30 nodes, 20 nets) test case
+
+NumNets : 20
+NumPins : 51
+
+NetDegree : 2 n1
+ c1 B : 0 0
+ p1 B : 0 0
+NetDegree : 3 n2
+ c2 B : 0 0
+ c3 B : 0 0
+ p2 B : 0 0
+NetDegree : 2 n3
+ c4 B : 0 0
+ c5 B : 0 0
+NetDegree : 3 n4
+ c6 B : 0 0
+ p3 B : 0 0
+ c7 B : 0 0
+NetDegree : 2 n5
+ c8 B : 0 0
+ c9 B : 0 0
+NetDegree : 3 n6
+ c10 B : 0 0
+ p4 B : 0 0
+ c1 B : 0 0
+NetDegree : 2 n7
+ c11 B : 0 0
+ c12 B : 0 0
+NetDegree : 3 n8
+ c13 B : 0 0
+ p5 B : 0 0
+ c2 B : 0 0
+NetDegree : 2 n9
+ c14 B : 0 0
+ c15 B : 0 0
+NetDegree : 3 n10
+ c16 B : 0 0
+ p6 B : 0 0
+ c3 B : 0 0
+NetDegree : 2 n11
+ c17 B : 0 0
+ c18 B : 0 0
+NetDegree : 3 n12
+ c19 B : 0 0
+ p7 B : 0 0
+ c4 B : 0 0
+NetDegree : 2 n13
+ c20 B : 0 0
+ c5 B : 0 0
+NetDegree : 3 n14
+ p8 B : 0 0
+ c6 B : 0 0
+ c10 B : 0 0
+NetDegree : 2 n15
+ c7 B : 0 0
+ c11 B : 0 0
+NetDegree : 3 n16
+ p9 B : 0 0
+ c12 B : 0 0
+ c14 B : 0 0
+NetDegree : 2 n17
+ c13 B : 0 0
+ c17 B : 0 0
+NetDegree : 3 n18
+ p10 B : 0 0
+ c15 B : 0 0
+ c19 B : 0 0
+NetDegree : 2 n19
+ c16 B : 0 0
+ c20 B : 0 0
+NetDegree : 2 n20
+ c18 B : 0 0
+ c8 B : 0 0

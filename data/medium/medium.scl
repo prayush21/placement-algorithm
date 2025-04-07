@@ -1,0 +1,25 @@
+UCLA scl 1.0
+# Created  :  Mar 31 2025
+# User     :  Generated based on medium.* files, mimicking superblue format
+
+NumRows  :  2
+
+CoreRow Horizontal
+   Coordinate     :  45        
+   Height         :  5         
+   Sitewidth      :  1         
+   Sitespacing    :  1         
+   Siteorient     :  N         
+   Sitesymmetry   :  Y         
+   SubrowOrigin   :  5         NumSites       :  100       
+End
+
+CoreRow Horizontal
+   Coordinate     :  50        
+   Height         :  5         
+   Sitewidth      :  1         
+   Sitespacing    :  1         
+   Siteorient     :  N         
+   Sitesymmetry   :  Y         
+   SubrowOrigin   :  5         NumSites       :  100       
+End

@@ -1,0 +1,24 @@
+UCLA nodes 1.0
+# Created: 2025-03-31 -- Generated from image netlist
+# All nodes have width=4, height=9 as requested
+
+NumNodes : 16
+NumTerminals : 0
+
+# Movable Cells (16) - name width height
+a	 4  9
+b	 4  9
+c	 4  9
+d	 4  9
+e	 4  9
+f	 4  9
+g	 4  9
+h	 4  9
+i	 4  9
+j	 4  9
+k	 4  9
+l	 4  9
+m	 4  9
+n	 4  9
+o	 4  9
+p	 4  9

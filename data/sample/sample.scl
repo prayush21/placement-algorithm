@@ -1,0 +1,52 @@
+UCLA scl 1.0
+# Created: 2025-03-31 -- Generated for sample.* files
+# Defines placement rows suitable for 16 cells of height 9
+
+NumRows  :  4
+
+# Row height matches cell height (9)
+# Total cell area = 16 * (4*9) = 576
+# Target utilization ~50%, requires ~1152 area
+# Row area = Height * NumSites * Sitewidth = 9 * 64 * 1 = 576
+# Total area = 2 rows * 576 area/row = 1152
+# Utilization = 576 / 1152 = 50%
+
+CoreRow Horizontal
+   Coordinate     :  10        
+   Height         :  9         
+   Sitewidth      :  1         
+   Sitespacing    :  1         
+   Siteorient     :  N         
+   Sitesymmetry   :  Y         
+   SubrowOrigin   :  10        NumSites       :  16        
+End
+
+CoreRow Horizontal
+   Coordinate     :  19        
+   Height         :  9         
+   Sitewidth      :  1         
+   Sitespacing    :  1         
+   Siteorient     :  N         
+   Sitesymmetry   :  Y         
+   SubrowOrigin   :  10        NumSites       :  16        
+End
+
+CoreRow Horizontal
+   Coordinate     :  28        
+   Height         :  9         
+   Sitewidth      :  1         
+   Sitespacing    :  1         
+   Siteorient     :  N         
+   Sitesymmetry   :  Y         
+   SubrowOrigin   :  10        NumSites       :  16        
+End
+
+CoreRow Horizontal
+   Coordinate     :  37        
+   Height         :  9         
+   Sitewidth      :  1         
+   Sitespacing    :  1         
+   Siteorient     :  N         
+   Sitesymmetry   :  Y         
+   SubrowOrigin   :  10        NumSites       :  16        
+End
