@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="1000" viewBox="7.75 7.75 20.5 49.5" preserveAspectRatio="xMidYMid meet">
+  <rect x="7.75" y="7.75" width="20.5" height="49.5" fill="none" stroke="green" stroke-width="1" />
+  <g transform="translate(0, 57.25) scale(1, -1)">
+    <rect x="10" y="10" width="16" height="36" fill="none" stroke="red" stroke-width="0.0495" />
+    <rect x="18" y="28" width="4" height="9" fill="lightblue" stroke="blue" stroke-width="0.02475" />
+    <rect x="10" y="19" width="4" height="9" fill="lightblue" stroke="blue" stroke-width="0.02475" />
+    <rect x="22" y="10" width="4" height="9" fill="lightblue" stroke="blue" stroke-width="0.02475" />
+    <rect x="14" y="28" width="4" height="9" fill="lightblue" stroke="blue" stroke-width="0.02475" />
+    <rect x="22" y="37" width="4" height="9" fill="lightblue" stroke="blue" stroke-width="0.02475" />
+    <rect x="10" y="28" width="4" height="9" fill="lightblue" stroke="blue" stroke-width="0.02475" />
+    <rect x="14" y="10" width="4" height="9" fill="lightblue" stroke="blue" stroke-width="0.02475" />
+    <rect x="18" y="10" width="4" height="9" fill="lightblue" stroke="blue" stroke-width="0.02475" />
+    <rect x="18" y="37" width="4" height="9" fill="lightblue" stroke="blue" stroke-width="0.02475" />
+    <rect x="10" y="37" width="4" height="9" fill="lightblue" stroke="blue" stroke-width="0.02475" />
+    <rect x="14" y="19" width="4" height="9" fill="lightblue" stroke="blue" stroke-width="0.02475" />
+    <rect x="22" y="19" width="4" height="9" fill="lightblue" stroke="blue" stroke-width="0.02475" />
+    <rect x="14" y="37" width="4" height="9" fill="lightblue" stroke="blue" stroke-width="0.02475" />
+    <rect x="18" y="19" width="4" height="9" fill="lightblue" stroke="blue" stroke-width="0.02475" />
+    <rect x="10" y="10" width="4" height="9" fill="lightblue" stroke="blue" stroke-width="0.02475" />
+    <rect x="22" y="28" width="4" height="9" fill="lightblue" stroke="blue" stroke-width="0.02475" />
+  </g>
+</svg>
