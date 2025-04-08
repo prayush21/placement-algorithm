@@ -115,7 +115,6 @@ int P_MAX = -1;
 int max_gain_index = 0;
 int min_gain_index = 0;
 
-//  std::map<int, std::list<std::string>> gain_bucket;
 std::vector<std::list<std::string>> gain_bucket;
 
 // For multi-pass tracking
@@ -557,7 +556,7 @@ int runOnePass(int mlMode)
         if (!canMoveCellBalanced(targetCellId))
         {
             // not feasible, lock & revert area
-            std::cout << "Caused Imbalance Node:" << targetCellId << std::endl;
+            // std::cout << "Caused Imbalance Node:" << targetCellId << std::endl;
             targetCell.lock_status = 1;
             areaA = oldA;
             areaB = oldB;
@@ -575,7 +574,6 @@ int runOnePass(int mlMode)
         // Update the cut
         int oldCut = cutBefore;
         cutBefore = cutBefore - targetCell.cell_gain;
-        std::cout << "NewCut: " << cutBefore << std::endl;
         if (cutBefore < bestCut)
         {
             bestCut = cutBefore;

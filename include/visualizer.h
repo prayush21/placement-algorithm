@@ -3,7 +3,7 @@
 
 #include "structures.h"
 #include <string>
-#include <map>
+#include <unordered_map>
 
 // Forward declaration
 class Circuit;
@@ -13,7 +13,7 @@ class Visualizer
 public:
     static void display_placement(
         const Circuit &circuit,
-        const std::map<std::string, Point> &placement,
+        const std::unordered_map<std::string, Point> &placement,
         const std::string &output_file = "placement.svg", // Default to SVG
         bool show_labels = false                          // Added flag for labels
     );
@@ -24,7 +24,7 @@ private:
 
     // Helper function for SVG output
     static void generate_svg(const Circuit &circuit,
-                             const std::map<std::string, Point> &placement,
+                             const std::unordered_map<std::string, Point> &placement,
                              const std::string &filename,
                              bool show_labels = false); // Added flag for labels
 };

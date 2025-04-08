@@ -39,11 +39,10 @@ private:
     double current_target_area_B = 0.0;
     double current_area_A = 0.0;
     double current_area_B = 0.0;
+    double balance_factor_min_d = 0.0;
+    double balance_factor_max_d = 0.0;
 
-    std::vector<Node *> current_nodes;                // Nodes being partitioned in this call
-    std::map<std::string, int> current_partition_map; // Node name -> partition ID (0 or 1)
-    std::map<std::string, bool> lock_status;          // Node name -> locked status
-    std::map<std::string, Point> placement_ref;
+    std::vector<Node *> current_nodes; // Nodes being partitioned in this call
 
     // Constants
     static const int MAX_ITERATIONS = 10;
@@ -62,7 +61,7 @@ private:
     PartitionResult run_fm_pass();
 
     bool check_area_balance(Node *node_to_move);
-    void move_node(Node *node_to_move);
+    // void move_node(Node *node_to_move);
 
     // 3. Gain Update
     void update_gains_after_move(Node *moved_node);

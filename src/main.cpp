@@ -6,6 +6,7 @@
 #include <iostream>
 #include <string>
 #include <filesystem>
+#include <unordered_map>
 #include <fstream>
 #include <chrono>
 #include <iomanip>
@@ -80,7 +81,7 @@ void run_multiple_strategies(const std::string &dataset_name)
 
             // Generate initial visualization
             std::cout << "Generating initial placement visualization..." << std::endl;
-            std::map<std::string, Point> initial_placement;
+            std::unordered_map<std::string, Point> initial_placement;
             for (const auto &[name, node] : circuit.cell_map)
             {
                 initial_placement[name] = node.pos;
@@ -88,7 +89,7 @@ void run_multiple_strategies(const std::string &dataset_name)
             try
             {
                 std::string initial_svg_file = dataset_name + "_" + strategy + "_initial.svg";
-                Visualizer::display_placement(circuit, initial_placement, initial_svg_file, true);
+                Visualizer::display_placement(circuit, initial_placement, initial_svg_file, false);
                 std::cout << "Initial placement visualization saved to: " << initial_svg_file << std::endl;
             }
             catch (const std::exception &e)
@@ -316,7 +317,7 @@ int main(int argc, char *argv[])
 
         // --- Generate Initial Visualization ---
         std::cout << "Generating initial placement visualization..." << std::endl;
-        std::map<std::string, Point> initial_placement;
+        std::unordered_map<std::string, Point> initial_placement;
         for (const auto &[name, node] : circuit.cell_map)
         {
             initial_placement[name] = node.pos; // Use initial positions from node data

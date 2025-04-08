@@ -3,7 +3,7 @@
 #include <fstream>
 #include <string>
 #include <vector>
-#include <map>
+#include <unordered_map>
 #include <stdexcept>
 #include <limits>    // For numeric_limits
 #include <algorithm> // For std::min/max
@@ -11,7 +11,7 @@
 
 // Helper function to generate SVG output
 void Visualizer::generate_svg(const Circuit &circuit,
-                              const std::map<std::string, Point> &placement,
+                              const std::unordered_map<std::string, Point> &placement,
                               const std::string &filename,
                               bool show_labels)
 {
@@ -164,7 +164,7 @@ void Visualizer::generate_svg(const Circuit &circuit,
 
 // Public method implementation
 void Visualizer::display_placement(const Circuit &circuit,
-                                   const std::map<std::string, Point> &placement,
+                                   const std::unordered_map<std::string, Point> &placement,
                                    const std::string &output_file,
                                    bool show_labels)
 {

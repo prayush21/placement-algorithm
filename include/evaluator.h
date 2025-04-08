@@ -2,7 +2,7 @@
 
 #include "structures.h"
 #include <vector>
-#include <map>
+#include <unordered_map>
 #include <string>
 
 // Forward declaration
@@ -12,7 +12,7 @@ class Evaluator
 {
 public:
     // Constructor takes the final circuit and placement results
-    Evaluator(Circuit &circuit, const std::map<std::string, Point> &placement);
+    Evaluator(Circuit &circuit, const std::unordered_map<std::string, Point> &placement);
 
     // --- Core Evaluation Metrics ---
 
@@ -37,8 +37,8 @@ public:
     std::vector<std::string> get_congested_regions_feedback();
 
 private:
-    Circuit &circuit_ref;                              // Reference to the circuit data
-    const std::map<std::string, Point> &placement_ref; // Reference to final placement
+    Circuit &circuit_ref;                                        // Reference to the circuit data
+    const std::unordered_map<std::string, Point> &placement_ref; // Reference to final placement
 
     // Helper to calculate HPWL for a single net
     double calculate_net_hpwl(const Net &net);

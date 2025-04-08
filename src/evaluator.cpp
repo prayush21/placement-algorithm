@@ -8,7 +8,7 @@
 
 // --- Constructor ---
 
-Evaluator::Evaluator(Circuit &circuit, const std::map<std::string, Point> &placement)
+Evaluator::Evaluator(Circuit &circuit, const std::unordered_map<std::string, Point> &placement)
     : circuit_ref(circuit), placement_ref(placement)
 {
     // Initialization if needed

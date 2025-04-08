@@ -47,12 +47,13 @@ public:
     void place(PlacementStrategy strategy);
 
     // Get the final calculated placement coordinates
-    const std::map<std::string, Point> &get_placement() const;
+    const std::unordered_map<std::string, Point> &get_placement() const;
 
 private:
-    Circuit &circuit_ref;                         // Reference to the circuit data
-    FMPartitioner &fm_ref;                        // Reference to the FM partitioner
-    std::map<std::string, Point> final_placement; // Node name -> bottom-left coord
+    Circuit &circuit_ref;                                   // Reference to the circuit data
+    FMPartitioner &fm_ref;                                  // Reference to the FM partitioner
+    std::unordered_map<std::string, Point> final_placement; // Node name -> bottom-left coord
+    int nodes_placed = 0;
 
     // Recursive placement functions for each strategy
     void recursive_bisection(PlacementRegion current_region, int level);

@@ -4,12 +4,12 @@
 #include <string>
 #include <vector>
 #include <map>
-#include <set>  // Included for potential use later, e.g., in FM
-#include <list> // Added for iterator
+#include <unordered_map>
+#include <set>
+#include <list>
 
 #define LAMBDA 0.1
 
-// Forward declarations to avoid circular dependencies
 class Node;
 class Net;
 
@@ -138,8 +138,8 @@ struct CoreRow
 
 struct Circuit
 {
-    std::map<std::string, Node> cell_map; // Renamed from nodes to cell_map
-    std::map<std::string, Net> net_map;   // Renamed from nets to net_map
+    std::unordered_map<std::string, Node> cell_map; // Renamed from nodes to cell_map
+    std::unordered_map<std::string, Net> net_map;   // Renamed from nets to net_map
     Rect core_region;
     std::vector<CoreRow> core_rows;
     RoutingGrid routing_grid;
