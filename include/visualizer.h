@@ -11,31 +11,22 @@ class Circuit;
 class Visualizer
 {
 public:
-    // Static method to generate a visual representation of the placement.
-    // Could output an SVG, PNG (using a library like Cairo or SDL),
-    // or data for an external tool like gnuplot or Python/matplotlib.
     static void display_placement(
         const Circuit &circuit,
         const std::map<std::string, Point> &placement,
-        const std::string &output_file = "placement.svg" // Default to SVG
+        const std::string &output_file = "placement.svg", // Default to SVG
+        bool show_labels = false                          // Added flag for labels
     );
-
-    // Optional: Add methods to visualize congestion maps, specific nets, etc.
-    // static void display_congestion_map(...);
-    // static void display_net(...);
 
 private:
     // Prevent instantiation of this utility class
     Visualizer() = delete;
 
-    // Helper function for SVG output (example)
+    // Helper function for SVG output
     static void generate_svg(const Circuit &circuit,
                              const std::map<std::string, Point> &placement,
-                             const std::string &filename);
-
-    // Add helpers for other output formats if needed
-    // static void generate_png(...);
-    // static void generate_gnuplot_data(...);
+                             const std::string &filename,
+                             bool show_labels = false); // Added flag for labels
 };
 
 #endif // VISUALIZER_H

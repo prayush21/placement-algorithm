@@ -2,21 +2,37 @@
   <rect x="7.75" y="7.75" width="20.5" height="49.5" fill="none" stroke="green" stroke-width="1" />
   <g transform="translate(0, 57.25) scale(1, -1)">
     <rect x="10" y="10" width="16" height="36" fill="none" stroke="red" stroke-width="0.0495" />
-    <rect x="18" y="28" width="4" height="9" fill="lightblue" stroke="blue" stroke-width="0.02475" />
-    <rect x="10" y="19" width="4" height="9" fill="lightblue" stroke="blue" stroke-width="0.02475" />
-    <rect x="22" y="10" width="4" height="9" fill="lightblue" stroke="blue" stroke-width="0.02475" />
-    <rect x="14" y="28" width="4" height="9" fill="lightblue" stroke="blue" stroke-width="0.02475" />
-    <rect x="22" y="37" width="4" height="9" fill="lightblue" stroke="blue" stroke-width="0.02475" />
-    <rect x="10" y="28" width="4" height="9" fill="lightblue" stroke="blue" stroke-width="0.02475" />
-    <rect x="14" y="10" width="4" height="9" fill="lightblue" stroke="blue" stroke-width="0.02475" />
-    <rect x="18" y="10" width="4" height="9" fill="lightblue" stroke="blue" stroke-width="0.02475" />
-    <rect x="18" y="37" width="4" height="9" fill="lightblue" stroke="blue" stroke-width="0.02475" />
-    <rect x="10" y="37" width="4" height="9" fill="lightblue" stroke="blue" stroke-width="0.02475" />
-    <rect x="14" y="19" width="4" height="9" fill="lightblue" stroke="blue" stroke-width="0.02475" />
-    <rect x="22" y="19" width="4" height="9" fill="lightblue" stroke="blue" stroke-width="0.02475" />
-    <rect x="14" y="37" width="4" height="9" fill="lightblue" stroke="blue" stroke-width="0.02475" />
     <rect x="18" y="19" width="4" height="9" fill="lightblue" stroke="blue" stroke-width="0.02475" />
-    <rect x="10" y="10" width="4" height="9" fill="lightblue" stroke="blue" stroke-width="0.02475" />
+    <text x="20" y="23.5" font-size="1" fill="black" text-anchor="middle" dominant-baseline="middle" transform="translate(0, 47.000000) scale(1, -1)">a</text>
+    <rect x="10" y="37" width="4" height="9" fill="lightblue" stroke="blue" stroke-width="0.02475" />
+    <text x="12" y="41.5" font-size="1" fill="black" text-anchor="middle" dominant-baseline="middle" transform="translate(0, 83.000000) scale(1, -1)">b</text>
+    <rect x="14" y="19" width="4" height="9" fill="lightblue" stroke="blue" stroke-width="0.02475" />
+    <text x="16" y="23.5" font-size="1" fill="black" text-anchor="middle" dominant-baseline="middle" transform="translate(0, 47.000000) scale(1, -1)">c</text>
     <rect x="22" y="28" width="4" height="9" fill="lightblue" stroke="blue" stroke-width="0.02475" />
+    <text x="24" y="32.5" font-size="1" fill="black" text-anchor="middle" dominant-baseline="middle" transform="translate(0, 65.000000) scale(1, -1)">d</text>
+    <rect x="14" y="28" width="4" height="9" fill="lightblue" stroke="blue" stroke-width="0.02475" />
+    <text x="16" y="32.5" font-size="1" fill="black" text-anchor="middle" dominant-baseline="middle" transform="translate(0, 65.000000) scale(1, -1)">e</text>
+    <rect x="18" y="28" width="4" height="9" fill="lightblue" stroke="blue" stroke-width="0.02475" />
+    <text x="20" y="32.5" font-size="1" fill="black" text-anchor="middle" dominant-baseline="middle" transform="translate(0, 65.000000) scale(1, -1)">f</text>
+    <rect x="10" y="19" width="4" height="9" fill="lightblue" stroke="blue" stroke-width="0.02475" />
+    <text x="12" y="23.5" font-size="1" fill="black" text-anchor="middle" dominant-baseline="middle" transform="translate(0, 47.000000) scale(1, -1)">g</text>
+    <rect x="22" y="10" width="4" height="9" fill="lightblue" stroke="blue" stroke-width="0.02475" />
+    <text x="24" y="14.5" font-size="1" fill="black" text-anchor="middle" dominant-baseline="middle" transform="translate(0, 29.000000) scale(1, -1)">h</text>
+    <rect x="14" y="10" width="4" height="9" fill="lightblue" stroke="blue" stroke-width="0.02475" />
+    <text x="16" y="14.5" font-size="1" fill="black" text-anchor="middle" dominant-baseline="middle" transform="translate(0, 29.000000) scale(1, -1)">i</text>
+    <rect x="22" y="19" width="4" height="9" fill="lightblue" stroke="blue" stroke-width="0.02475" />
+    <text x="24" y="23.5" font-size="1" fill="black" text-anchor="middle" dominant-baseline="middle" transform="translate(0, 47.000000) scale(1, -1)">j</text>
+    <rect x="18" y="37" width="4" height="9" fill="lightblue" stroke="blue" stroke-width="0.02475" />
+    <text x="20" y="41.5" font-size="1" fill="black" text-anchor="middle" dominant-baseline="middle" transform="translate(0, 83.000000) scale(1, -1)">k</text>
+    <rect x="10" y="28" width="4" height="9" fill="lightblue" stroke="blue" stroke-width="0.02475" />
+    <text x="12" y="32.5" font-size="1" fill="black" text-anchor="middle" dominant-baseline="middle" transform="translate(0, 65.000000) scale(1, -1)">l</text>
+    <rect x="10" y="10" width="4" height="9" fill="lightblue" stroke="blue" stroke-width="0.02475" />
+    <text x="12" y="14.5" font-size="1" fill="black" text-anchor="middle" dominant-baseline="middle" transform="translate(0, 29.000000) scale(1, -1)">m</text>
+    <rect x="22" y="37" width="4" height="9" fill="lightblue" stroke="blue" stroke-width="0.02475" />
+    <text x="24" y="41.5" font-size="1" fill="black" text-anchor="middle" dominant-baseline="middle" transform="translate(0, 83.000000) scale(1, -1)">n</text>
+    <rect x="14" y="37" width="4" height="9" fill="lightblue" stroke="blue" stroke-width="0.02475" />
+    <text x="16" y="41.5" font-size="1" fill="black" text-anchor="middle" dominant-baseline="middle" transform="translate(0, 83.000000) scale(1, -1)">o</text>
+    <rect x="18" y="10" width="4" height="9" fill="lightblue" stroke="blue" stroke-width="0.02475" />
+    <text x="20" y="14.5" font-size="1" fill="black" text-anchor="middle" dominant-baseline="middle" transform="translate(0, 29.000000) scale(1, -1)">p</text>
   </g>
 </svg>

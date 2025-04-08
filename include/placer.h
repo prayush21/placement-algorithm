@@ -72,7 +72,7 @@ private:
 
     // Constants for termination (examples)
     const int MAX_RECURSION_DEPTH = 10;
-    const int MIN_NODES_PER_REGION = 3;
+    const int MIN_NODES_PER_REGION = 1;
     // const double MIN_REGION_AREA_RATIO = 0.01; // Compared to total core area
 };
 

@@ -56,7 +56,7 @@ PartitionResult FMPartitioner::partition(const std::vector<Node *> &nodes_to_par
 
     for (int pass = 1; pass <= max_passes && improvement_found; ++pass)
     {
-        // std::cout << "\n[FM] --- Starting Pass " << pass << " ---" << std::endl;
+        std::cout << "\n[FM] --- Starting Pass " << pass << " ---" << std::endl;
         improvement_found = false; // Assume no improvement in this pass initially
 
         // Calculate initial cut size for this pass
@@ -258,7 +258,7 @@ void FMPartitioner::initialize_partition(const std::vector<Node *> &nodes, doubl
     }
 
     // Print initial partition distribution (Optional)
-    std::cout << "[FM] Initial Partition Areas: A = " << current_area_A << ", B = " << current_area_B << std::endl;
+    // std::cout << "[FM] Initial Partition Areas: A = " << current_area_A << ", B = " << current_area_B << std::endl;
     long countA = 0, countB = 0;
     for (Node *node : nodes)
     {
@@ -284,142 +284,123 @@ void FMPartitioner::initialize_partition(const std::vector<Node *> &nodes, doubl
     // std::cout << "----------------------------------" << std::endl;
 }
 
-void FMPartitioner::calculate_initial_gains()
+void FMPartitioner::initialize_gains_and_buckets()
 {
-    // std::cout << "[FM] Calculating initial gains..." << std::endl;
+    std::cout << "[FM] Initializing gains and building buckets..." << std::endl;
 
-    // Reset gains for nodes to be partitioned
+    // 1. Reset state
+    gain_bucket.clear();
+    p_max = 0;
+    max_gain_index = std::numeric_limits<int>::min();
+    min_gain_index = std::numeric_limits<int>::max();
+
+    // Reset gains for nodes to be partitioned (unlocking happens in initialize_partition)
     for (Node *node_ptr : current_nodes)
     {
         node_ptr->fm_gain = 0;
+        node_ptr->fm_locked = false;
     }
 
-    // Reset net counts
+    // 2. Reset Net Counts
     for (auto &net_pair : circuit_ref.net_map)
     {
         net_pair.second.partition_A_count = 0;
         net_pair.second.partition_B_count = 0;
     }
 
-    // Calculate initial net distribution considering all nodes (including fixed ones)
-    for (auto &node_pair : circuit_ref.cell_map) // Iterate with auto& for non-const access
+    // 3. Calculate Initial Net Distribution based on the current partition state
+    for (auto const &[node_name, node] : circuit_ref.cell_map)
     {
-        Node &node = node_pair.second; // Get a non-const reference
-        for (Net *net : node.nets)     // Access via reference
+        p_max = std::max(p_max, static_cast<int>(node.nets.size()));
+        for (Net *net : node.nets)
         {
-            if (node.partition_id == 0) // Access via reference
-            {
+            if (node.partition_id == 0)
                 net->partition_A_count++;
-            }
-            else if (node.partition_id == 1) // Assuming partition_id is 1 for B
-            {
+            else if (node.partition_id == 1)
                 net->partition_B_count++;
-            }
         }
     }
 
-    // Calculate gains based on net distribution for the nodes we are partitioning
-    std::cout << "Gains for current Nodes" << std::endl;
-    for (Node *node : current_nodes)
-    {
-        int gain = 0;
-        int from_partition = node->partition_id;
-        for (Net *net : node->nets)
-        {
-            int F_count = (from_partition == 0) ? net->partition_A_count : net->partition_B_count;
-            int T_count = (from_partition == 0) ? net->partition_B_count : net->partition_A_count;
-
-            if (F_count == 1)
-                gain++;
-            if (T_count == 0)
-                gain--;
-        }
-        node->fm_gain = gain;
-    }
-
-    std::ofstream initial_gains_file("initial_gains.txt");
-    for (Node *node : current_nodes)
-    {
-        initial_gains_file << node->name << "->" << node->fm_gain << ", partition_id->" << node->partition_id << std::endl;
-    }
-    initial_gains_file.close();
-}
-
-void FMPartitioner::build_gain_buckets()
-{
-    std::cout << "[FM] Building gain buckets..." << std::endl;
-
-    // Clear existing buckets
-    gain_bucket.clear();
-    max_gain_index = -1; // Use -1 to indicate not yet found
-    min_gain_index = std::numeric_limits<int>::max();
-
-    // Find max potential gain (p_max)
-    p_max = calculate_pmax(current_nodes);
-    // Ensure bucket size is at least 1, even if p_max is 0
-    std::cout << "P_MAX: " << p_max << std::endl;
-    int bucket_size = std::max(1, 2 * p_max + 1);
+    // 5. Resize Gain Buckets
+    int bucket_size = 2 * p_max + 1;
     gain_bucket.resize(bucket_size);
 
-    // Add nodes to appropriate buckets
+    // 6. Calculate Gains and Populate Buckets for current_nodes
+    bool nodes_added = false;
+    max_gain_index = 0;               // Reset effective max index
+    min_gain_index = bucket_size - 1; // Reset effective min index
+
     for (Node *node : current_nodes)
     {
+
         if (!node->fm_locked)
         {
-            int bucket_index = node->fm_gain + p_max;
+            int gain = 0;
+            int from_partition = node->partition_id;
+
+            for (Net *net : node->nets)
+            {
+
+                int F_count = (from_partition == 0) ? net->partition_A_count : net->partition_B_count;
+                int T_count = (from_partition == 0) ? net->partition_B_count : net->partition_A_count;
+
+                if (F_count == 1)
+                    gain++;
+                if (T_count == 0)
+                    gain--;
+            }
+            node->fm_gain = gain;
+            int bucket_index = gain + p_max;
 
             // Clamp bucket_index to valid range [0, bucket_size - 1]
             bucket_index = std::max(0, std::min(bucket_index, bucket_size - 1));
 
-            gain_bucket[bucket_index].push_front(node);
-            node->bucket_iterator = gain_bucket[bucket_index].begin(); // Store iterator in the node
+            gain_bucket[bucket_index].push_front(node);                // Add to front
+            node->bucket_iterator = gain_bucket[bucket_index].begin(); // Store iterator
 
-            // Update tracked max/min gain indices that have non-empty buckets
-            if (bucket_index > max_gain_index)
-            {
-                max_gain_index = bucket_index;
-            }
-            // Use '<=' for min_gain_index initialization case
-            if (bucket_index < min_gain_index)
-            {
-                min_gain_index = bucket_index;
-            }
+            // Update actual min/max indices with non-empty buckets
+            max_gain_index = std::max(max_gain_index, bucket_index);
+            min_gain_index = std::min(min_gain_index, bucket_index);
+            nodes_added = true;
         }
     }
-    std::cout << "Gain Buckets==>" << std::endl;
+
+    // 7. Adjust min/max gain indices if no nodes were added or if extremes are empty
+    if (!nodes_added)
+    {
+        max_gain_index = 0;
+        min_gain_index = 0;
+    }
+    else
+    {
+        // Adjust if initial min/max were too broad or buckets ended up empty
+        while (max_gain_index >= 0 && gain_bucket[max_gain_index].empty())
+        {
+            max_gain_index--;
+        }
+        max_gain_index = std::max(0, max_gain_index); // Ensure not negative
+
+        while (min_gain_index < gain_bucket.size() && gain_bucket[min_gain_index].empty())
+        {
+            min_gain_index++;
+        }
+        min_gain_index = std::min(bucket_size - 1, min_gain_index); // Ensure not out of bounds
+        min_gain_index = std::min(min_gain_index, max_gain_index);  // Ensure min <= max (handles case where all nodes are in one bucket)
+    }
+}
+
+void FMPartitioner::printGainBucket()
+{
+    std::cout << "[INFO] Gain Buckets " << std::endl;
     for (int i = 0; i < gain_bucket.size(); i++)
     {
-        std::cout << "i = " << i << ", nodes=";
-        for (auto itr : gain_bucket[i])
+        std::cout << "Gain Bucket[" << i << "](" << i - p_max << "): ";
+        for (auto &cellId : gain_bucket[i])
         {
-            std::cout << "(" << itr->name << ", " << itr->fm_gain << ") -->";
+            std::cout << cellId->name << " ";
         }
         std::cout << std::endl;
     }
-
-    // If no nodes were added, max_gain_index might still be -1
-    if (max_gain_index == -1)
-    {
-        min_gain_index = 0; // Or handle case with no movable nodes
-        max_gain_index = 0;
-        return; // Nothing more to do
-    }
-
-    // Adjust min/max gain indices if buckets are empty at the extremes
-    while (max_gain_index >= 0 && gain_bucket[max_gain_index].empty())
-    {
-        max_gain_index--;
-    }
-    // Ensure max_gain_index doesn't go below 0 if all buckets become empty (unlikely here)
-    max_gain_index = std::max(0, max_gain_index);
-
-    while (min_gain_index < gain_bucket.size() && gain_bucket[min_gain_index].empty())
-    {
-        min_gain_index++;
-    }
-    // Ensure min_gain_index doesn't exceed the actual bucket size or max_gain_index
-    min_gain_index = std::min(min_gain_index, (int)gain_bucket.size() - 1);
-    min_gain_index = std::min(min_gain_index, max_gain_index);
 }
 
 void FMPartitioner::reset_fm_state()
@@ -450,7 +431,7 @@ void FMPartitioner::reset_fm_state()
 
 PartitionResult FMPartitioner::run_fm_pass()
 {
-    // std::cout << "[FM] Running FM pass..." << std::endl;
+    std::cout << "[FM] Running FM pass..." << std::endl;
 
     PartitionResult best_pass_result;
     best_pass_result.cut_size = calculate_cut_size();
@@ -463,164 +444,95 @@ PartitionResult FMPartitioner::run_fm_pass()
 
     // Store move sequence and corresponding gains/cuts for rollback
     std::vector<Node *> move_sequence;
-    std::vector<int> gain_at_move;
-    std::vector<int> cut_size_after_move;
-    std::vector<double> area_A_after_move;
-    std::vector<double> area_B_after_move;
+    std::vector<int> cut_sizes;
+    std::vector<double> area_A_history;
+    std::vector<double> area_B_history;
 
-    // Reset locks for the nodes we are partitioning
-    for (Node *node : current_nodes)
-    {
-        node->fm_locked = false;
-    }
+    // Initialize tracking vectors with initial state
+    cut_sizes.push_back(current_cut_size);
+    area_A_history.push_back(current_area_A);
+    area_B_history.push_back(current_area_B);
 
-    calculate_initial_gains();
-    build_gain_buckets();
+    initialize_gains_and_buckets();
 
     int best_cut_in_pass = current_cut_size;
     int best_move_index = -1; // Index in move_sequence corresponding to best_cut_in_pass
 
     // Iterate while there are unlocked nodes with valid gains
-    for (int move_count = 0; move_count < current_nodes.size(); ++move_count)
+    while (max_gain_index >= min_gain_index)
     {
-        Node *node_to_move = select_best_node_to_move();
 
-        if (!node_to_move)
+        // printGainBucket();
+        int currMaxGain = max_gain_index - p_max;
+        auto &bucketList = gain_bucket[max_gain_index];
+
+        if (bucketList.empty())
         {
-            // std::cout << "[FM] No feasible node found to move. Ending pass." << std::endl;
-            break; // No more valid moves possible
+            max_gain_index--;
+            continue;
         }
 
-        int gain_of_move = node_to_move->fm_gain;
+        auto &targetNode = bucketList.back();
+        bucketList.pop_back();
+        if (bucketList.empty())
+            max_gain_index--;
 
-        // Move the node (updates gains of neighbors)
-        move_node(node_to_move);
+        if (targetNode->fm_locked)
+            continue;
 
-        // Record the move
-        move_sequence.push_back(node_to_move);
-        gain_at_move.push_back(gain_of_move);
+        if (!check_area_balance(targetNode))
+        {
+            targetNode->fm_locked = true;
+            continue;
+        }
 
-        // Update cut size
-        current_cut_size -= gain_of_move;
-        cut_size_after_move.push_back(current_cut_size);
-        area_A_after_move.push_back(current_area_A);
-        area_B_after_move.push_back(current_area_B);
+        // Store the node being moved
+        move_sequence.push_back(targetNode);
 
-        // Track the best cut size seen in this pass
+        // Update gains and move the node
+        update_gains_after_move(targetNode);
+        targetNode->fm_locked = true;
+        int oldPartition = targetNode->partition_id;
+        targetNode->partition_id = oldPartition == 0 ? 1 : 0;
+
+        // Update current cut size and areas
+        // current_cut_size = calculate_cut_size();
+        current_cut_size = current_cut_size - targetNode->fm_gain;
+        cut_sizes.push_back(current_cut_size);
+        area_A_history.push_back(current_area_A);
+        area_B_history.push_back(current_area_B);
+
+        // Check if this is the best cut so far
         if (current_cut_size < best_cut_in_pass)
         {
             best_cut_in_pass = current_cut_size;
-            best_move_index = move_count;
+            best_move_index = move_sequence.size() - 1;
         }
     }
 
-    // std::cout << "[FM] Pass completed. Best cut in pass: " << best_cut_in_pass << " at move " << (best_move_index + 1) << std::endl;
-
-    // Roll back moves to the state that gave the best cut size
-    if (best_move_index != -1 && best_cut_in_pass < best_pass_result.cut_size)
-    { // Only update if we found an improvement within the pass
-        best_pass_result.cut_size = best_cut_in_pass;
-        // Roll back from the end to the best state
-        for (int i = move_sequence.size() - 1; i > best_move_index; --i)
-        {
-            Node *node_to_rollback = move_sequence[i];
-            int original_partition = (node_to_rollback->partition_id == 0) ? 1 : 0;
-            if (original_partition == 0)
-            { // Moved to B, rollback to A
-                current_area_B -= node_to_rollback->area;
-                current_area_A += node_to_rollback->area;
-            }
-            else
-            { // Moved to A, rollback to B
-                current_area_A -= node_to_rollback->area;
-                current_area_B += node_to_rollback->area;
-            }
-            node_to_rollback->partition_id = original_partition;
-        }
-        // Final area after rollback
-        current_area_A = area_A_after_move[best_move_index];
-        current_area_B = area_B_after_move[best_move_index];
-    }
-    else
+    // If we found a better cut, rollback to that state
+    if (best_move_index >= 0)
     {
-        // No improvement in this pass, revert all moves
-        // std::cout << "[FM] No improvement found or best was initial state. Reverting all moves." << std::endl;
-        for (int i = move_sequence.size() - 1; i >= 0; --i)
-        {
-            Node *node_to_rollback = move_sequence[i];
-            int original_partition = (node_to_rollback->partition_id == 0) ? 1 : 0;
-            if (original_partition == 0)
-            { // Moved to B, rollback to A
-                current_area_B -= node_to_rollback->area;
-                current_area_A += node_to_rollback->area;
-            }
-            else
-            { // Moved to A, rollback to B
-                current_area_A -= node_to_rollback->area;
-                current_area_B += node_to_rollback->area;
-            }
-            node_to_rollback->partition_id = original_partition;
-        }
-        // Reset area to initial state for this pass
-        current_area_A = initial_area_A;
-        current_area_B = initial_area_B;
+        // std::cout << "Cutsizes: " << cut_sizes.size() << " best_move_index: " << best_move_index << std::endl;
+        // for (auto cut_size : cut_sizes)
+        // {
+        //     std::cout << cut_size << " , ";
+        // }
+        // std::cout << std::endl;
+        // std::cout << "Move Sequence(" << move_sequence.size() << "): ";
+        // for (auto node : move_sequence)
+        // {
+        //     std::cout << node->name << " , ";
+        // }
+        // std::cout << std::endl;
+        rollback_to_best_cut(move_sequence, cut_sizes, area_A_history, area_B_history, best_move_index, best_pass_result);
+        best_pass_result.cut_size = best_cut_in_pass;
     }
 
-    // Populate PartitionResult with the final partition state after rollback
-    // best_pass_result.partition_A.clear();
-    // best_pass_result.partition_B.clear();
-    // for(Node* node : current_nodes) {
-    //     if (node->partition_id == 0) {
-    //         best_pass_result.partition_A.push_back(node);
-    //     } else {
-    //         best_pass_result.partition_B.push_back(node);
-    //     }
-    // }
+    std::cout << "[FM] Pass completed. Best cut in pass: " << best_cut_in_pass
+              << " at move&cut " << (best_move_index + 1) << "&" << cut_sizes[best_move_index + 1] << std::endl;
 
     return best_pass_result;
-}
-
-Node *FMPartitioner::select_best_node_to_move()
-{
-    // Iterate from the highest gain bucket downwards
-    for (int current_index = max_gain_index; current_index >= min_gain_index; --current_index)
-    {
-        if (current_index < 0 || current_index >= gain_bucket.size())
-            continue; // Boundary check
-
-        auto &bucketList = gain_bucket[current_index];
-        for (auto it = bucketList.begin(); it != bucketList.end(); /* manual increment */)
-        {
-            Node *candidate_node = *it;
-
-            if (candidate_node->fm_locked)
-            {
-                ++it; // Skip locked nodes
-                continue;
-            }
-
-            // Check if moving this node maintains area balance
-            if (check_area_balance(candidate_node))
-            {
-                // Node is feasible, remove from bucket (will be locked in move_node)
-                // Erasing invalidates iterator 'it', so get next before erasing if needed
-                // but since we return immediately, just erase is fine.
-                // bucketList.erase(it); // Remove here or after successful move?
-                // Update max/min gain index if this bucket becomes empty
-                // if (bucketList.empty()) {
-                //    // Adjust max_gain_index or min_gain_index (complex logic, handle in update_single_node_gain)
-                // }
-                return candidate_node; // Found the best feasible node
-            }
-            else
-            {
-                ++it; // Check next node in the same bucket
-            }
-        }
-    }
-
-    // No feasible node found in any bucket
-    return nullptr;
 }
 
 bool FMPartitioner::check_area_balance(Node *node_to_move)
@@ -631,12 +543,15 @@ bool FMPartitioner::check_area_balance(Node *node_to_move)
     if (node_to_move->partition_id == 0)
     {
         // Moving A -> B
+        // std::cout << "Moving node(" << node_to_move->name << "):" << " A->B " << std::endl;
         prospective_area_A -= node_to_move->area;
         prospective_area_B += node_to_move->area;
     }
     else
     {
         // Moving B -> A
+        // std::cout << "Moving node(" << node_to_move->name << "):" << " B->A " << std::endl;
+
         prospective_area_B -= node_to_move->area;
         prospective_area_A += node_to_move->area;
     }
@@ -645,11 +560,10 @@ bool FMPartitioner::check_area_balance(Node *node_to_move)
     // Avoid division by zero if total area is zero
     if (total_partitioned_area <= 0.0)
         return true;
-
+    // std::cout << "Moving node: " << node_to_move->name << "Area A: " << prospective_area_A / total_partitioned_area << "Area B: " << prospective_area_B / total_partitioned_area;
     // Check if the prospective areas are within the allowed range
     bool balance_ok = (prospective_area_A >= current_target_area_A && prospective_area_A <= current_target_area_B) &&
                       (prospective_area_B >= current_target_area_A && prospective_area_B <= current_target_area_B);
-
     // Alternative check: Check total balance factor range
     // double balance_factor = prospective_area_A / total_partitioned_area;
     // bool balance_ok = (balance_factor >= balance_factor_min && balance_factor <= balance_factor_max);
@@ -718,7 +632,7 @@ void FMPartitioner::update_gains_after_move(Node *moved_node)
     int to_partition = (from_partition == 0) ? 1 : 0;
 
     // Lock the moved node temporarily during updates to prevent self-update
-    moved_node->fm_locked = true; // Already locked in move_node, but defensive
+    // moved_node->fm_locked = true; // Already locked in move_node, but defensive
 
     for (Net *net : moved_node->nets)
     {
@@ -809,11 +723,12 @@ void FMPartitioner::update_gains_after_move(Node *moved_node)
     }
 
     // Unlock the node if necessary (it will be locked again in move_node)
-    // moved_node->fm_locked = false; // Not needed, move_node locks it.
+    moved_node->fm_locked = true; // Not needed, move_node locks it.
 }
 
 void FMPartitioner::update_single_node_gain(Node *node, int delta_gain)
 {
+
     if (node->fm_locked)
         return; // Should not happen if called correctly
 
@@ -825,10 +740,9 @@ void FMPartitioner::update_single_node_gain(Node *node, int delta_gain)
     // Clamp indices to valid range
     old_bucket_index = std::max(0, std::min(old_bucket_index, (int)gain_bucket.size() - 1));
     new_bucket_index = std::max(0, std::min(new_bucket_index, (int)gain_bucket.size() - 1));
-
     // Remove node from the old bucket using its stored iterator
     if (node->bucket_iterator != std::list<Node *>::iterator())
-    { // Check validity
+    {
         gain_bucket[old_bucket_index].erase(node->bucket_iterator);
     }
     else
@@ -840,7 +754,7 @@ void FMPartitioner::update_single_node_gain(Node *node, int delta_gain)
 
     // Add node to the new bucket
     gain_bucket[new_bucket_index].push_front(node);
-    node->bucket_iterator = gain_bucket[new_bucket_index].begin(); // Store the new iterator in the node
+    node->bucket_iterator = gain_bucket[new_bucket_index].begin(); // Store the new iterator in the node:
 
     // Update node's gain value
     node->fm_gain = new_gain;
@@ -918,27 +832,93 @@ int FMPartitioner::calculate_cut_size()
 
 double FMPartitioner::calculate_total_area(const std::vector<Node *> &nodes)
 {
-    // srand(time(0)); // Should not be here - call once in main or constructor if needed
     double total = 0.0;
     for (Node *node : nodes)
     {
-        // Only sum area for nodes we are partitioning
         total += node->area;
     }
     return total;
 }
 
-int FMPartitioner::calculate_pmax(const std::vector<Node *> &nodes)
+void FMPartitioner::rollback_to_best_cut(const std::vector<Node *> &move_sequence,
+                                         const std::vector<int> &cut_sizes,
+                                         const std::vector<double> &area_A_history,
+                                         const std::vector<double> &area_B_history,
+                                         int best_move_index, PartitionResult best_pass_result)
 {
-    int max_degree = 0;
-    for (Node *node : nodes)
+    // Validate inputs and show which validations fail
+    bool validation_failed = false;
+    std::string error_msg = "[FM] Invalid rollback parameters:";
+
+    if (move_sequence.empty())
     {
-        // Consider only nodes being partitioned for p_max calculation relevant to gains
-        if (node)
-        {
-            max_degree = std::max(max_degree, static_cast<int>(node->nets.size()));
-        }
+        validation_failed = true;
+        error_msg += "\n  - Move sequence is empty";
     }
-    // p_max should be at least 1 to avoid issues with bucket indexing if all nodes have degree 0
-    return std::max(1, max_degree);
+    if (best_move_index < 0)
+    {
+        validation_failed = true;
+        error_msg += "\n  - Best move index is negative";
+    }
+    if (best_move_index >= static_cast<int>(move_sequence.size()))
+    {
+        validation_failed = true;
+        error_msg += "\n  - Best move index exceeds move sequence size";
+    }
+    if (cut_sizes.size() != move_sequence.size() + 1)
+    {
+        validation_failed = true;
+        error_msg += "\n  - Cut sizes size (" + std::to_string(cut_sizes.size()) +
+                     ") does not match expected size (" + std::to_string(move_sequence.size() + 1) + ")";
+    }
+    if (area_A_history.size() != move_sequence.size() + 1)
+    {
+        validation_failed = true;
+        error_msg += "\n  - Area A history size (" + std::to_string(area_A_history.size()) +
+                     ") does not match expected size (" + std::to_string(move_sequence.size() + 1) + ")";
+    }
+    if (area_B_history.size() != move_sequence.size() + 1)
+    {
+        validation_failed = true;
+        error_msg += "\n  - Area B history size (" + std::to_string(area_B_history.size()) +
+                     ") does not match expected size (" + std::to_string(move_sequence.size() + 1) + ")";
+    }
+
+    if (validation_failed)
+    {
+        std::cerr << error_msg << std::endl;
+        return;
+    }
+
+    // Reset all nodes to their initial state (before any moves)
+    for (Node *node : best_pass_result.partition_A)
+    {
+        node->partition_id = 0; // Reset to initial partition
+        node->fm_locked = false;
+    }
+
+    // Reset all nodes to their initial state (before any moves)
+    for (Node *node : best_pass_result.partition_B)
+    {
+        node->partition_id = 1; // Reset to initial partition
+        node->fm_locked = false;
+    }
+
+    // Replay moves up to the best cut point
+    for (int i = 0; i <= best_move_index; ++i)
+    {
+        Node *node = move_sequence[i];
+        // Move the node to the opposite partition
+        node->partition_id = (node->partition_id == 0) ? 1 : 0;
+    }
+
+    // Update the current areas to match the best cut state
+    current_area_A = area_A_history[best_move_index + 1];
+    current_area_B = area_B_history[best_move_index + 1];
+
+    // Reinitialize gains and buckets for the best partition state
+    initialize_gains_and_buckets();
+
+    std::cout << "[FM] Rolled back to best cut state with cut size: "
+              << cut_sizes[best_move_index + 1] << "on move " << best_move_index + 1 << std::endl;
 }

@@ -172,6 +172,7 @@ void Parser::parse_nets(const std::string &file_path, Circuit &circuit)
 
     std::string line;
     std::string currentNetId;
+    Net *current_net_ptr = nullptr; // Keep track of the current Net pointer
     while (std::getline(fin, line))
     {
         if (line.empty() || line[0] == '#' ||
@@ -192,32 +193,51 @@ void Parser::parse_nets(const std::string &file_path, Circuit &circuit)
             int netDegree;
             ss >> colon >> netDegree >> currentNetId;
 
-            // Create new net using Circuit's helper
-            Net *net = circuit.add_net(currentNetId);
-            net->partition_A_count = 0;
-            net->partition_B_count = 0;
+            // Create new net using Circuit's helper and store the pointer
+            current_net_ptr = circuit.add_net(currentNetId);
+            if (current_net_ptr)
+            { // Basic null check
+                current_net_ptr->partition_A_count = 0;
+                current_net_ptr->partition_B_count = 0;
+            }
+            else
+            {
+                // Handle error if add_net failed, maybe throw an exception
+                throw std::runtime_error("Error: Failed to add net '" + currentNetId + "'");
+            }
         }
         else
         {
             std::string cellId = token;
-            if (circuit.cell_map.find(cellId) == circuit.cell_map.end())
+            auto cell_it = circuit.cell_map.find(cellId);
+            if (cell_it == circuit.cell_map.end())
             {
                 // Possibly a fixed cell/pad not in cell_map
                 continue;
             }
 
-            // Add node to net's node list
-            Node &cell = circuit.cell_map[cellId];
-            circuit.net_map[currentNetId].nodes.push_back(&cell);
+            // Check if we have a valid net pointer
+            if (!current_net_ptr)
+            {
+                throw std::runtime_error("Error: Trying to add cell '" + cellId + "' before encountering a NetDegree line.");
+            }
 
-            // Update partition counts based on cell's partition
+            Node &cell = cell_it->second; // Get reference to the node
+
+            // Add node to net's node list
+            current_net_ptr->nodes.push_back(&cell);
+
+            // Add net to node's net list
+            cell.nets.push_back(current_net_ptr);
+
+            // Update partition counts based on cell's partition (if needed here, though FM usually does this)
             // if (cell.partition_id == 0)
             // {
-            //     circuit.net_map[currentNetId].partition_A_count++;
+            //     current_net_ptr->partition_A_count++;
             // }
-            // else if (cell.partition_id == -1)
+            // else if (cell.partition_id == 1) // Assuming partition 1 is B
             // {
-            //     circuit.net_map[currentNetId].partition_B_count++;
+            //     current_net_ptr->partition_B_count++;
             // }
         }
     }

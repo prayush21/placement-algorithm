@@ -110,7 +110,7 @@ long long areaA = 0;
 long long areaB = 0;
 
 // Balancing ratio (10% by default)
-double ALLOWED_AREA_IMBALANCE_RATIO = 0.1;
+double ALLOWED_AREA_IMBALANCE_RATIO = 0.2;
 int P_MAX = -1;
 int max_gain_index = 0;
 int min_gain_index = 0;
@@ -485,6 +485,7 @@ void printGainBucketMaxMin()
 void printGainBucket()
 {
     std::cout << "[INFO] Gain Buckets: Under construction " << std::endl;
+    std::cout << "[INFO] P_MAX: " << P_MAX << std::endl;
     for (int i = 0; i < gain_bucket.size(); i++)
     {
         std::cout << "Gain Bucket[" << i << "](" << i - P_MAX << "): ";
@@ -507,12 +508,13 @@ int runOnePass(int mlMode)
 
     // Build the gain buckets
     initializeGainBuckets();
+    // printGainBucket();
 
     // Takeing cell from max to min
     while (max_gain_index >= min_gain_index)
     {
-
         iter++;
+        // printGainBucket();
 
         int currMaxGain = max_gain_index - P_MAX;
         auto &bucketList = gain_bucket[max_gain_index];
@@ -555,6 +557,7 @@ int runOnePass(int mlMode)
         if (!canMoveCellBalanced(targetCellId))
         {
             // not feasible, lock & revert area
+            std::cout << "Caused Imbalance Node:" << targetCellId << std::endl;
             targetCell.lock_status = 1;
             areaA = oldA;
             areaB = oldB;
@@ -572,7 +575,7 @@ int runOnePass(int mlMode)
         // Update the cut
         int oldCut = cutBefore;
         cutBefore = cutBefore - targetCell.cell_gain;
-
+        std::cout << "NewCut: " << cutBefore << std::endl;
         if (cutBefore < bestCut)
         {
             bestCut = cutBefore;

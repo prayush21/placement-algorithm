@@ -1,6 +1,7 @@
 #include "../include/parser.h"
 #include "../include/placer.h"
 #include "../include/fm.h"
+#include "../include/evaluator.h"
 #include "../include/visualizer.h"
 #include <iostream>
 #include <string>
@@ -21,12 +22,14 @@ void print_usage(const char *program_name)
               << "                            - quadrature\n"
               << "                            - slice-bisection\n"
               << "                            - cut-oriented\n"
-              << "  -o, --output <file>     Output file for placement results (default: placement.out)\n"
-              << "  --svg <file>          Output file for SVG visualization (default: final_placement.svg)\n"
-              << "  -v, --verbose           Enable verbose output\n"
+              << "  -a, --all               Run all strategies\n"
+              << "  -o, --output <file>     Output file for placement results (default: <dataset>_<strategy>_pl.txt)\n"
+              << "  --svg <file>          Output file for SVG visualization (default: <dataset>_<strategy>_final.svg)\n"
+              << "  --eval <file>         Output file for evaluation metrics (default: <dataset>_<strategy>_eval.txt)\n"
               << "\n" // Add a newline for spacing
-              << "Example:\n"
-              << "  " << program_name << " -s quadrature -o my_placement.txt --svg my_layout.svg superblue18\n"
+              << "Examples:\n"
+              << "  " << program_name << " -s quadrature -o my_placement.txt --svg my_layout.svg --eval my_eval.txt superblue18\n"
+              << "  " << program_name << " -s bisection superblue18\n"
               << std::endl;
 }
 
@@ -44,6 +47,139 @@ PlacementStrategy parse_strategy(const std::string &strategy_str)
     throw std::runtime_error("Unknown placement strategy: " + strategy_str);
 }
 
+void run_multiple_strategies(const std::string &dataset_name)
+{
+    std::vector<std::string> strategies = {"quadrature", "bisection", "slice-bisection"};
+
+    std::cout << "Starting placement runs with different strategies..." << std::endl;
+    std::cout << "----------------------------------------" << std::endl;
+
+    for (const auto &strategy : strategies)
+    {
+        std::cout << "Running placement with strategy: " << strategy << std::endl;
+        std::cout << "----------------------------------------" << std::endl;
+
+        // Create new output filenames for each strategy
+        std::string output_file = dataset_name + "_" + strategy + "_pl.txt";
+        std::string svg_output_file = dataset_name + "_" + strategy + "_final.svg";
+        std::string evaluation_output_file = dataset_name + "_" + strategy + "_eval.txt";
+
+        // Construct paths
+        std::string benchmark_dir = "./data/" + dataset_name;
+        std::string aux_file_path = benchmark_dir + "/" + dataset_name + ".aux";
+
+        try
+        {
+            // Create parser and circuit
+            Parser parser;
+            Circuit circuit;
+
+            // Parse benchmark files
+            std::cout << "Parsing benchmark files for dataset: " << dataset_name << " from directory: " << benchmark_dir << std::endl;
+            parser.parse_ispd2011(aux_file_path, circuit);
+
+            // Generate initial visualization
+            std::cout << "Generating initial placement visualization..." << std::endl;
+            std::map<std::string, Point> initial_placement;
+            for (const auto &[name, node] : circuit.cell_map)
+            {
+                initial_placement[name] = node.pos;
+            }
+            try
+            {
+                std::string initial_svg_file = dataset_name + "_" + strategy + "_initial.svg";
+                Visualizer::display_placement(circuit, initial_placement, initial_svg_file, true);
+                std::cout << "Initial placement visualization saved to: " << initial_svg_file << std::endl;
+            }
+            catch (const std::exception &e)
+            {
+                std::cerr << "Warning: Could not generate initial SVG visualization: " << e.what() << std::endl;
+            }
+
+            // Create FM partitioner and placer
+            FMPartitioner fm(circuit);
+            Placer placer(circuit, fm);
+
+            // Parse placement strategy
+            PlacementStrategy placement_strategy = parse_strategy(strategy);
+
+            // Run placement
+            std::cout << "Starting placement with strategy: " << strategy << std::endl;
+            placer.place(placement_strategy);
+
+            // Get placement results
+            const auto &placement = placer.get_placement();
+
+            // Generate final visualization
+            std::cout << "Generating final placement visualization..." << std::endl;
+            try
+            {
+                Visualizer::display_placement(circuit, placement, svg_output_file, true);
+                std::cout << "Final placement visualization saved to: " << svg_output_file << std::endl;
+            }
+            catch (const std::exception &e)
+            {
+                std::cerr << "Warning: Could not generate final SVG visualization: " << e.what() << std::endl;
+            }
+
+            // Write results to output file
+            std::ofstream out(output_file);
+            if (!out)
+            {
+                throw std::runtime_error("Failed to open output file: " + output_file);
+            }
+
+            // Write placement results
+            for (const auto &[node_name, pos] : placement)
+            {
+                out << node_name << " " << pos.x << " " << pos.y << std::endl;
+            }
+            out.close();
+
+            // Calculate and write evaluation metrics
+            std::cout << "Calculating evaluation metrics..." << std::endl;
+            Evaluator evaluator(circuit, placement);
+            double total_hpwl = evaluator.calculate_total_hpwl();
+
+            double total_movable_area = 0.0;
+            for (const auto &[node_name, pos] : placement)
+            {
+                auto it = circuit.cell_map.find(node_name);
+                if (it != circuit.cell_map.end() && it->second.type == MOVABLE)
+                {
+                    total_movable_area += it->second.area;
+                }
+            }
+
+            std::ofstream eval_out(evaluation_output_file);
+            if (!eval_out)
+            {
+                throw std::runtime_error("Failed to open evaluation output file: " + evaluation_output_file);
+            }
+            eval_out << "Dataset: " << dataset_name << std::endl;
+            eval_out << "Placement Strategy: " << strategy << std::endl;
+            eval_out << "Total Movable Node Area: " << std::fixed << std::setprecision(2) << total_movable_area << std::endl;
+            eval_out << "Total HPWL: " << std::fixed << std::setprecision(2) << total_hpwl << std::endl;
+            eval_out.close();
+
+            std::cout << "----------------------------------------" << std::endl;
+            std::cout << "Completed placement with strategy: " << strategy << std::endl;
+            std::cout << "----------------------------------------" << std::endl;
+            std::cout << std::endl;
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Error running strategy " << strategy << ": " << e.what() << std::endl;
+            std::cout << "----------------------------------------" << std::endl;
+            std::cout << "Failed placement with strategy: " << strategy << std::endl;
+            std::cout << "----------------------------------------" << std::endl;
+            std::cout << std::endl;
+        }
+    }
+
+    std::cout << "All placement runs completed!" << std::endl;
+}
+
 int main(int argc, char *argv[])
 {
     auto start_time = std::chrono::high_resolution_clock::now();
@@ -51,9 +187,10 @@ int main(int argc, char *argv[])
     // Default values
     std::string dataset_name;
     std::string strategy_str = "bisection";
-    std::string output_file = "placement.out";
-    std::string svg_output_file = "final_placement.svg";
-    bool verbose = false;
+    std::string output_file;
+    std::string svg_output_file;
+    std::string evaluation_output_file;
+    bool run_all_strategies = false;
 
     // Parse command line arguments
     for (int i = 1; i < argc; ++i)
@@ -77,6 +214,10 @@ int main(int argc, char *argv[])
                 print_usage(argv[0]);
                 return 1;
             }
+        }
+        else if (arg == "-a" || arg == "--all")
+        {
+            run_all_strategies = true;
         }
         else if (arg == "-o" || arg == "--output")
         {
@@ -104,9 +245,18 @@ int main(int argc, char *argv[])
                 return 1;
             }
         }
-        else if (arg == "-v" || arg == "--verbose")
+        else if (arg == "--eval")
         {
-            verbose = true;
+            if (++i < argc)
+            {
+                evaluation_output_file = argv[i];
+            }
+            else
+            {
+                std::cerr << "Error: Evaluation output argument requires a value" << std::endl;
+                print_usage(argv[0]);
+                return 1;
+            }
         }
         else
         {
@@ -127,6 +277,26 @@ int main(int argc, char *argv[])
         std::cerr << "Error: Benchmark dataset name is required" << std::endl;
         print_usage(argv[0]);
         return 1;
+    }
+
+    if (run_all_strategies)
+    {
+        run_multiple_strategies(dataset_name);
+        return 0;
+    }
+
+    // Set default filenames if not provided
+    if (output_file.empty())
+    {
+        output_file = dataset_name + "_" + strategy_str + "_pl.txt";
+    }
+    if (svg_output_file.empty())
+    {
+        svg_output_file = dataset_name + "_" + strategy_str + "_final.svg";
+    }
+    if (evaluation_output_file.empty())
+    {
+        evaluation_output_file = dataset_name + "_" + strategy_str + "_eval.txt";
     }
 
     // Construct paths
@@ -153,8 +323,9 @@ int main(int argc, char *argv[])
         }
         try
         {
-            Visualizer::display_placement(circuit, initial_placement, "initial_placement.svg");
-            std::cout << "Initial placement visualization saved to: initial_placement.svg" << std::endl;
+            std::string initial_svg_file = dataset_name + "_" + strategy_str + "_initial.svg";
+            Visualizer::display_placement(circuit, initial_placement, initial_svg_file, true);
+            std::cout << "Initial placement visualization saved to: " << initial_svg_file << std::endl;
         }
         catch (const std::exception &e)
         {
@@ -182,7 +353,7 @@ int main(int argc, char *argv[])
         std::cout << "Generating final placement visualization..." << std::endl;
         try
         {
-            Visualizer::display_placement(circuit, placement, svg_output_file);
+            Visualizer::display_placement(circuit, placement, svg_output_file, true);
             std::cout << "Final placement visualization saved to: " << svg_output_file << std::endl;
         }
         catch (const std::exception &e)
@@ -203,20 +374,49 @@ int main(int argc, char *argv[])
         {
             out << node_name << " " << pos.x << " " << pos.y << std::endl;
         }
+        out.close();
+
+        // --- Calculate Evaluation Metrics ---
+        std::cout << "Calculating evaluation metrics..." << std::endl;
+        Evaluator evaluator(circuit, placement);
+        double total_hpwl = evaluator.calculate_total_hpwl();
+
+        double total_movable_area = 0.0;
+        for (const auto &[node_name, pos] : placement)
+        {
+            auto it = circuit.cell_map.find(node_name);
+            if (it != circuit.cell_map.end() && it->second.type == MOVABLE)
+            {
+                total_movable_area += it->second.area;
+            }
+        }
+
+        auto end_time_eval = std::chrono::high_resolution_clock::now();
+        auto duration_eval = std::chrono::duration_cast<std::chrono::milliseconds>(end_time_eval - start_time);
+        double execution_time_sec = duration_eval.count() / 1000.0;
+
+        // --- Write Evaluation File ---
+        std::cout << "Writing evaluation metrics to: " << evaluation_output_file << std::endl;
+        std::ofstream eval_out(evaluation_output_file);
+        if (!eval_out)
+        {
+            throw std::runtime_error("Failed to open evaluation output file: " + evaluation_output_file);
+        }
+        eval_out << "Dataset: " << dataset_name << std::endl;
+        eval_out << "Placement Strategy: " << strategy_str << std::endl;
+        eval_out << "Execution Time (seconds): " << std::fixed << std::setprecision(3) << execution_time_sec << std::endl;
+        eval_out << "Total Movable Node Area: " << std::fixed << std::setprecision(2) << total_movable_area << std::endl;
+        eval_out << "Total HPWL: " << std::fixed << std::setprecision(2) << total_hpwl << std::endl;
+        eval_out.close();
     }
     catch (const std::exception &e)
     {
         std::cerr << "Error: " << e.what() << std::endl;
-        auto end_time = std::chrono::high_resolution_clock::now();
-        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time);
-        std::cout << "Total execution time: " << std::fixed << std::setprecision(3) << duration.count() / 1000.0 << " seconds." << std::endl;
+        auto end_time_err = std::chrono::high_resolution_clock::now();
+        auto duration_err = std::chrono::duration_cast<std::chrono::milliseconds>(end_time_err - start_time);
+        std::cout << "Total execution time (before error): " << std::fixed << std::setprecision(3) << duration_err.count() / 1000.0 << " seconds." << std::endl;
         return 1;
     }
-
-    auto end_time = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time);
-    std::cout << "Placement completed successfully. Results written to: " << output_file << std::endl;
-    std::cout << "Total execution time: " << std::fixed << std::setprecision(3) << duration.count() / 1000.0 << " seconds." << std::endl;
 
     return 0;
 }

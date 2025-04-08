@@ -12,7 +12,8 @@
 // Helper function to generate SVG output
 void Visualizer::generate_svg(const Circuit &circuit,
                               const std::map<std::string, Point> &placement,
-                              const std::string &filename)
+                              const std::string &filename,
+                              bool show_labels)
 {
     std::ofstream svg_file(filename);
     if (!svg_file)
@@ -123,18 +124,27 @@ void Visualizer::generate_svg(const Circuit &circuit,
                      << R"(" fill=")" << fill_color
                      << R"(" stroke="blue" stroke-width=")" << stroke_width / 2.0 << R"(" />)" << std::endl;
 
-            // Optional: Add text label (can clutter the view for many nodes)
-            // double text_x = pos.x + node.width / 2.0;
-            // double text_y = pos.y + node.height / 2.0;
-            // double font_size = std::min(node.width, node.height) / 5.0; // Example sizing
-            // if (font_size > 1e-9) {
-            //      svg_file << R"(    <text x=")" << text_x << R"(" y=")" << text_y
-            //               << R"(" font-size=")" << font_size << R"(" text-anchor="middle" dominant-baseline="middle")"
-            //                // Apply inverse transform to text so it's readable
-            //               << R"( transform="translate(0, )" << 2 * text_y << R"() scale(1, -1))">)"
-            //               << node.name << R"(</text>)" << "
-            // "; // This semicolon was causing an error
-            // }
+            // Optional: Add text label if requested
+            if (show_labels)
+            {
+                double text_x = pos.x + node.width / 2.0;
+                double text_y = pos.y + node.height / 2.0;
+                // Use a small fixed font size relative to the overall scale, ensuring it's not zero
+                double fixed_font_size = std::max(1.0, stroke_width * 5.0); // Adjust multiplier as needed
+
+                // Construct the transform attribute string separately for clarity and correctness
+                std::string transform_attr = "translate(0, " + std::to_string(2 * text_y) + ") scale(1, -1)";
+
+                // Construct the text element string
+                svg_file << R"(    <text x=")" << text_x
+                         << R"(" y=")" << text_y
+                         << R"(" font-size=")" << fixed_font_size
+                         << R"(" fill="black")"
+                         << R"( text-anchor="middle" dominant-baseline="middle")"
+                         // Apply inverse transform to text so it's readable
+                         << R"( transform=")" << transform_attr << R"(">)" // Insert the pre-built transform string
+                         << node.name << R"(</text>)" << std::endl;
+            }
         }
         catch (const std::out_of_range &oor)
         {
@@ -155,9 +165,10 @@ void Visualizer::generate_svg(const Circuit &circuit,
 // Public method implementation
 void Visualizer::display_placement(const Circuit &circuit,
                                    const std::map<std::string, Point> &placement,
-                                   const std::string &output_file)
+                                   const std::string &output_file,
+                                   bool show_labels)
 {
     // Currently, just calls the SVG generation helper.
     // Could be extended to choose different output formats later.
-    generate_svg(circuit, placement, output_file);
+    generate_svg(circuit, placement, output_file, show_labels);
 }

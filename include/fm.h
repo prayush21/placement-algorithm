@@ -39,8 +39,6 @@ private:
     double current_target_area_B = 0.0;
     double current_area_A = 0.0;
     double current_area_B = 0.0;
-    double min_balance_threshold = 0.45; // Example default
-    double max_balance_threshold = 0.55; // Example default
 
     std::vector<Node *> current_nodes;                // Nodes being partitioned in this call
     std::map<std::string, int> current_partition_map; // Node name -> partition ID (0 or 1)
@@ -55,13 +53,14 @@ private:
 
     // 1. Initialization
     void initialize_partition(const std::vector<Node *> &nodes, double target_balance);
-    void calculate_initial_gains();
-    void build_gain_buckets();
+
+    void initialize_gains_and_buckets();
+    void printGainBucket();
     void reset_fm_state();
 
     // 2. Main Pass Logic
     PartitionResult run_fm_pass();
-    Node *select_best_node_to_move();
+
     bool check_area_balance(Node *node_to_move);
     void move_node(Node *node_to_move);
 
@@ -71,9 +70,8 @@ private:
 
     // 4. Utility
     int calculate_cut_size();
-    int calculate_cut_size_2();
+
     double calculate_total_area(const std::vector<Node *> &nodes);
-    int calculate_pmax(const std::vector<Node *> &nodes);
 
     // New methods for placement objectives
     double calculate_total_wire_length();
@@ -83,4 +81,11 @@ private:
                              double current_congestion, double current_timing,
                              int best_cut, double best_wire_length,
                              double best_congestion, double best_timing);
+
+    // Rollback method
+    void rollback_to_best_cut(const std::vector<Node *> &move_sequence,
+                              const std::vector<int> &cut_sizes,
+                              const std::vector<double> &area_A_history,
+                              const std::vector<double> &area_B_history,
+                              int best_move_index, PartitionResult best_pass_result);
 };

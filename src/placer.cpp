@@ -105,7 +105,7 @@ void Placer::recursive_bisection(PlacementRegion current_region, int level)
 void Placer::recursive_quadrature(PlacementRegion current_region, int level)
 {
     // Print progress every 5 levels
-    bool should_log = (level % 5 == 0);
+    bool should_log = true;
 
     if (should_log)
     {
@@ -123,8 +123,8 @@ void Placer::recursive_quadrature(PlacementRegion current_region, int level)
     }
 
     // Define balance constraints for FM partitioning
-    const double balance_min = 0.50;
-    const double balance_max = 0.50;
+    const double balance_min = 0.48;
+    const double balance_max = 0.52;
 
     // Calculate center coordinates for geometric splitting
     double center_x = (current_region.bounds.bottom_left.x + current_region.bounds.top_right.x) / 2.0;
@@ -137,8 +137,21 @@ void Placer::recursive_quadrature(PlacementRegion current_region, int level)
     }
     // 1. First bi-partitioning (conceptually Left vs Right)
     PartitionResult first_split = fm_ref.partition(current_region.assigned_nodes, balance_min, balance_max);
+    std::cout << "Print Region 1: ";
+    for (auto node : first_split.partition_A)
+    {
+        std::cout << node->name << " ,";
+    }
+    std::cout << std::endl;
+    std::cout << "Print Region 2: ";
+    for (auto node : first_split.partition_B)
+    {
+        std::cout << node->name << " ,";
+    }
+    std::cout << std::endl;
     std::vector<Node *> group1_nodes = first_split.partition_A; // Let's call this group 1
     std::vector<Node *> group2_nodes = first_split.partition_B; // Let's call this group 2
+
     if (should_log)
     {
         std::cout << "[Placer][Level " << level << "] First split: Group 1 (" << group1_nodes.size() << " nodes), Group 2 (" << group2_nodes.size() << " nodes)." << std::endl;
@@ -259,8 +272,8 @@ void Placer::recursive_cut_oriented(PlacementRegion current_region, int level)
     }
 
     // Define balance constraints
-    const double balance_min = 0.45;
-    const double balance_max = 0.55;
+    const double balance_min = 0.50;
+    const double balance_max = 0.50;
 
     // Determine cut direction based on aspect ratio
     double width = current_region.bounds.top_right.x - current_region.bounds.bottom_left.x;
@@ -269,7 +282,6 @@ void Placer::recursive_cut_oriented(PlacementRegion current_region, int level)
 
     // Partition nodes
     PartitionResult split = fm_ref.partition(current_region.assigned_nodes, balance_min, balance_max);
-
     // Create sub-regions
     Rect region1_bounds, region2_bounds;
     double center_x = (current_region.bounds.bottom_left.x + current_region.bounds.top_right.x) / 2.0;
@@ -304,7 +316,7 @@ void Placer::assign_coords_in_leaf(PlacementRegion &leaf_region)
     // Calculate the center of the leaf region
     double center_x = (leaf_region.bounds.bottom_left.x + leaf_region.bounds.top_right.x) / 2.0;
     double center_y = (leaf_region.bounds.bottom_left.y + leaf_region.bounds.top_right.y) / 2.0;
-    Point center_point = {center_x, center_y};
+    // Point center_point = {center_x, center_y};
 
     // Assign the center point to all nodes in this leaf region
     for (Node *node : leaf_region.assigned_nodes)
@@ -312,7 +324,7 @@ void Placer::assign_coords_in_leaf(PlacementRegion &leaf_region)
         if (node != nullptr) // Basic safety check
         {
             // Assign the calculated center point
-            final_placement[node->name] = center_point;
+            // final_placement[node->name] = center_point;
             final_placement[node->name] = leaf_region.bounds.bottom_left;
             // Optional: Log assignment
             // std::cout << "[Placer][Leaf] Assigned " << node->name << " to (" << center_x << ", " << center_y << ")"
@@ -324,28 +336,12 @@ void Placer::assign_coords_in_leaf(PlacementRegion &leaf_region)
 
 bool Placer::should_terminate(const PlacementRegion &region, int level)
 {
-    // Check recursion depth
-    // if (level >= MAX_RECURSION_DEPTH)
-    // {
-    //     return true;
-    // }
 
     // Check number of nodes
     if (region.assigned_nodes.size() <= MIN_NODES_PER_REGION)
     {
         return true;
     }
-
-    // Check region size relative to core area
-    // double region_area = (region.bounds.top_right.x - region.bounds.bottom_left.x) *
-    //                      (region.bounds.top_right.y - region.bounds.bottom_left.y);
-    // double core_area = (circuit_ref.core_region.top_right.x - circuit_ref.core_region.bottom_left.x) *
-    //                    (circuit_ref.core_region.top_right.y - circuit_ref.core_region.bottom_left.y);
-
-    // if (region_area / core_area < MIN_REGION_AREA_RATIO)
-    // {
-    //     return true;
-    // }
 
     return false;
 }
