@@ -115,7 +115,7 @@ void run_multiple_strategies(const std::string &dataset_name)
             std::cout << "Generating final placement visualization..." << std::endl;
             try
             {
-                Visualizer::display_placement(circuit, placement, svg_output_file, true);
+                Visualizer::display_placement(circuit, placement, svg_output_file, false);
                 std::cout << "Final placement visualization saved to: " << svg_output_file << std::endl;
             }
             catch (const std::exception &e)
@@ -325,7 +325,7 @@ int main(int argc, char *argv[])
         try
         {
             std::string initial_svg_file = dataset_name + "_" + strategy_str + "_initial.svg";
-            Visualizer::display_placement(circuit, initial_placement, initial_svg_file, true);
+            Visualizer::display_placement(circuit, initial_placement, initial_svg_file, false);
             std::cout << "Initial placement visualization saved to: " << initial_svg_file << std::endl;
         }
         catch (const std::exception &e)
@@ -354,7 +354,7 @@ int main(int argc, char *argv[])
         std::cout << "Generating final placement visualization..." << std::endl;
         try
         {
-            Visualizer::display_placement(circuit, placement, svg_output_file, true);
+            Visualizer::display_placement(circuit, placement, svg_output_file, false);
             std::cout << "Final placement visualization saved to: " << svg_output_file << std::endl;
         }
         catch (const std::exception &e)

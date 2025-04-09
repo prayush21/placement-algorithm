@@ -72,8 +72,8 @@ private:
     TerminalAnchors calculate_terminal_anchors(const PlacementRegion &current_region);
 
     // Constants for termination (examples)
-    const int MAX_RECURSION_DEPTH = 10;
-    const int MIN_NODES_PER_REGION = 1;
+    const int MAX_RECURSION_DEPTH = 8;
+    const int MIN_NODES_PER_REGION = 4;
     // const double MIN_REGION_AREA_RATIO = 0.01; // Compared to total core area
 };
 
