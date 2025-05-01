@@ -253,8 +253,8 @@ void Placer::recursive_cut_oriented(PlacementRegion current_region, int level)
     }
 
     // Define balance constraints
-    const double balance_min = 0.45;
-    const double balance_max = 0.55;
+    const double balance_min = 0.50;
+    const double balance_max = 0.50;
 
     // Determine cut direction based on aspect ratio
     double width = current_region.bounds.top_right.x - current_region.bounds.bottom_left.x;
@@ -306,7 +306,7 @@ void Placer::assign_coords_in_leaf(PlacementRegion &leaf_region)
         {
             // Assign the calculated center point
             nodes_placed++;
-            final_placement[node->name] = center_point;
+            final_placement[node->name] = leaf_region.bounds.bottom_left;
         }
     }
 }

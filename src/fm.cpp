@@ -384,12 +384,24 @@ void FMPartitioner::reset_fm_state()
 
 PartitionResult FMPartitioner::run_fm_pass()
 {
-    // std::cout << "[FM] Running FM pass..." << std::endl;
+    std::cout << "[FM] Running FM pass..." << std::endl;
     int THRESHOLD = 470000;
     PartitionResult best_pass_result;
     best_pass_result.cut_size = calculate_cut_size();
-    best_pass_result.partition_A = {}; // TODO: Store initial partition state if needed for rollback
-    best_pass_result.partition_B = {};
+    best_pass_result.partition_A.clear(); // Explicitly clear just in case
+    best_pass_result.partition_B.clear(); // Explicitly clear just in case
+    // Store the initial partition state for potential rollback
+    for (Node *node : current_nodes)
+    {
+        if (node->partition_id == 0)
+        {
+            best_pass_result.partition_A.push_back(node);
+        }
+        else
+        { // Assuming partition_id is always 0 or 1 for nodes in current_nodes
+            best_pass_result.partition_B.push_back(node);
+        }
+    }
 
     int current_cut_size = best_pass_result.cut_size;
     double initial_area_A = current_area_A;
@@ -464,6 +476,16 @@ PartitionResult FMPartitioner::run_fm_pass()
         // current_cut_size = calculate_cut_size();
         current_cut_size = current_cut_size - targetNode->fm_gain;
         cut_sizes.push_back(current_cut_size);
+        if (oldPartition == 0)
+        {
+            current_area_A -= targetNode->area;
+            current_area_B += targetNode->area;
+        }
+        else
+        {
+            current_area_A += targetNode->area;
+            current_area_B -= targetNode->area;
+        }
         area_A_history.push_back(current_area_A);
         area_B_history.push_back(current_area_B);
 
@@ -515,9 +537,9 @@ PartitionResult FMPartitioner::run_fm_pass()
         best_pass_result.cut_size = best_cut_in_pass;
     }
 
-    // std::cout << "[FM] Pass completed. Best cut in pass: " << best_cut_in_pass
-    //           << " at move&cut " << (best_move_index + 1) << "&" << cut_sizes[best_move_index + 1] << std::endl;
-
+    std::cout << "[FM] Pass completed. Best cut in pass: " << best_cut_in_pass
+              << " at move&cut " << (best_move_index + 1) << "&" << cut_sizes[best_move_index + 1] << std::endl;
+    std::cout << "[FM] Actual Cutsize: " << calculate_cut_size() << std::endl;
     return best_pass_result;
 }
 
@@ -685,14 +707,14 @@ void FMPartitioner::update_gains_after_move(Node *moved_node)
 
         // --- Revert counts - actual update happens in move_node --- IS THIS NEEDED?
         // The update logic depends on counts *before* move. The actual counts are updated *after* this function in move_node.
-        if (from_partition == 0)
-            net->partition_A_count++;
-        else
-            net->partition_B_count++;
-        if (to_partition == 0)
-            net->partition_A_count--;
-        else
-            net->partition_B_count--;
+        // if (from_partition == 0)
+        //     net->partition_A_count++;
+        // else
+        //     net->partition_B_count++;
+        // if (to_partition == 0)
+        //     net->partition_A_count--;
+        // else
+        //     net->partition_B_count--;
         // --- Counts are back to state before the move --- Seems correct
     }
 

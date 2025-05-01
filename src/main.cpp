@@ -50,7 +50,7 @@ PlacementStrategy parse_strategy(const std::string &strategy_str)
 
 void run_multiple_strategies(const std::string &dataset_name)
 {
-    std::vector<std::string> strategies = {"quadrature", "bisection", "slice-bisection"};
+    std::vector<std::string> strategies = {"quadrature", "bisection", "slice-bisection", "cut-oriented"};
 
     std::cout << "Starting placement runs with different strategies..." << std::endl;
     std::cout << "----------------------------------------" << std::endl;
@@ -89,7 +89,7 @@ void run_multiple_strategies(const std::string &dataset_name)
             try
             {
                 std::string initial_svg_file = dataset_name + "_" + strategy + "_initial.svg";
-                Visualizer::display_placement(circuit, initial_placement, initial_svg_file, false);
+                Visualizer::display_placement(circuit, initial_placement, initial_svg_file, true);
                 std::cout << "Initial placement visualization saved to: " << initial_svg_file << std::endl;
             }
             catch (const std::exception &e)
@@ -115,7 +115,7 @@ void run_multiple_strategies(const std::string &dataset_name)
             std::cout << "Generating final placement visualization..." << std::endl;
             try
             {
-                Visualizer::display_placement(circuit, placement, svg_output_file, false);
+                Visualizer::display_placement(circuit, placement, svg_output_file, true);
                 std::cout << "Final placement visualization saved to: " << svg_output_file << std::endl;
             }
             catch (const std::exception &e)
