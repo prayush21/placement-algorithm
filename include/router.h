@@ -73,6 +73,9 @@ public:
     const std::unordered_map<EdgeKey, int, std::hash<EdgeKey>> &v_usage() const;
     const std::unordered_set<const Net *> &unrouted_nets() const;
 
+    void save_global_routing_results(const std::string &filename) const;
+    std::optional<int> load_global_routing_results(const std::string &filename);
+
     friend class DetailedRouter;
 
 protected:

@@ -225,8 +225,54 @@ void run_single_flow(
     // Routing and Evaluation common part
     Router grouter(circuit);
     GlobalAlgo router_algo_enum = (router_algo_str == "hadlock") ? ALGO_HADLOCK : ALGO_SOUKUP;
-    std::cout << "Starting global routing with algorithm: " << router_algo_str << std::endl;
-    int unrouted_nets = grouter.global_route(router_algo_enum, false, MERGE_STAR);
+
+    int unrouted_nets = 0;
+    bool gr_loaded_from_file = false;
+    double global_routing_time_sec = 0.0;
+
+    std::string global_routing_results_file = dataset_name + "_" +
+                                              (!route_from_filepath_param.empty() ? "routed_from_file_" : strategy_str_param + "_") +
+                                              router_algo_str + "_global_routes.txt";
+
+    if (std::filesystem::exists(global_routing_results_file))
+    {
+        std::cout << "Attempting to load existing global routing results from: " << global_routing_results_file << std::endl;
+        auto load_start_time = std::chrono::high_resolution_clock::now();
+        std::optional<int> loaded_unrouted_count = grouter.load_global_routing_results(global_routing_results_file);
+        auto load_end_time = std::chrono::high_resolution_clock::now();
+        if (loaded_unrouted_count.has_value())
+        {
+            unrouted_nets = loaded_unrouted_count.value();
+            gr_loaded_from_file = true;
+            global_routing_time_sec = std::chrono::duration_cast<std::chrono::duration<double>>(load_end_time - load_start_time).count();
+            std::cout << "Successfully loaded global routing results in " << global_routing_time_sec << "s. Unrouted nets: " << unrouted_nets << std::endl;
+        }
+        else
+        {
+            std::cout << "Failed to load or parse " << global_routing_results_file << ". Proceeding with global routing." << std::endl;
+        }
+    }
+
+    if (!gr_loaded_from_file)
+    {
+        std::cout << "Starting global routing with algorithm: " << router_algo_str << std::endl;
+        auto gr_start_time = std::chrono::high_resolution_clock::now();
+        unrouted_nets = grouter.global_route(router_algo_enum, false, MERGE_STAR);
+        auto gr_end_time = std::chrono::high_resolution_clock::now();
+        global_routing_time_sec = std::chrono::duration_cast<std::chrono::duration<double>>(gr_end_time - gr_start_time).count();
+        std::cout << "Global routing completed in " << global_routing_time_sec << "s. Unrouted nets: " << unrouted_nets << std::endl;
+        // Save global routing results (paths, usage etc.) if computed
+        grouter.save_global_routing_results(global_routing_results_file);
+    }
+    else
+    {
+        // If loaded, we still call save_global_routing_results to ensure the output file is updated/consistent if the format changes in the future or for logging purposes.
+        // Alternatively, skip this if the assumption is that the loaded file is perfect and final.
+        // For now, let's save it to ensure it exists with current data from Router object.
+        // std::cout << "Re-saving loaded global routing data to ensure consistency." << std::endl;
+        // grouter.save_global_routing_results(global_routing_results_file);
+        // Decided against re-saving by default to avoid unnecessary I/O if loaded. User can delete the file to force re-route & save.
+    }
 
     DetailedRouter dr(circuit, grouter);
     std::cout << "Starting detailed routing..." << std::endl;
@@ -277,6 +323,8 @@ void run_single_flow(
         eval_out << "Placement Strategy: " << strategy_str_param << std::endl;
     }
     eval_out << "Routing Algorithm: " << router_algo_str << std::endl;
+    eval_out << "Global Routing Loaded From File: " << (gr_loaded_from_file ? "Yes" : "No") << std::endl;
+    eval_out << "Global Routing Time (seconds): " << std::fixed << std::setprecision(3) << global_routing_time_sec << std::endl;
     eval_out << "Execution Time (seconds): " << std::fixed << std::setprecision(3) << execution_time_sec << std::endl;
     eval_out << "Total Movable Node Area: " << std::fixed << std::setprecision(2) << total_movable_area << std::endl;
     eval_out << "Total HPWL: " << std::fixed << std::setprecision(2) << total_hpwl << std::endl;
@@ -365,7 +413,47 @@ void run_multiple_strategies(const std::string &dataset_name, const std::string 
             // Create router and run global routing
             Router grouter(circuit);
             GlobalAlgo router_algo = (cli_router_algo_str == "hadlock") ? ALGO_HADLOCK : ALGO_SOUKUP;
-            int unrouted_nets = grouter.global_route(router_algo, false, MERGE_STAR);
+
+            int unrouted_nets_multi = 0;
+            bool gr_loaded_from_file_multi = false;
+            double global_routing_time_sec_multi = 0.0;
+            std::string global_routing_results_file_multi = dataset_name + "_" + strategy + "_" + cli_router_algo_str + "_global_routes.txt";
+
+            if (std::filesystem::exists(global_routing_results_file_multi))
+            {
+                std::cout << "Attempting to load existing global routing results from: " << global_routing_results_file_multi << std::endl;
+                auto load_start_time = std::chrono::high_resolution_clock::now();
+                std::optional<int> loaded_unrouted_count = grouter.load_global_routing_results(global_routing_results_file_multi);
+                auto load_end_time = std::chrono::high_resolution_clock::now();
+                if (loaded_unrouted_count.has_value())
+                {
+                    unrouted_nets_multi = loaded_unrouted_count.value();
+                    gr_loaded_from_file_multi = true;
+                    global_routing_time_sec_multi = std::chrono::duration_cast<std::chrono::duration<double>>(load_end_time - load_start_time).count();
+                    std::cout << "Successfully loaded global GR results for " << strategy << " in " << global_routing_time_sec_multi << "s. Unrouted: " << unrouted_nets_multi << std::endl;
+                }
+                else
+                {
+                    std::cout << "Failed to load GR results for " << strategy << ". Proceeding with global routing." << std::endl;
+                }
+            }
+
+            if (!gr_loaded_from_file_multi)
+            {
+                std::cout << "Starting global routing for strategy: " << strategy << " with algorithm: " << cli_router_algo_str << std::endl;
+                auto gr_start_time = std::chrono::high_resolution_clock::now();
+                unrouted_nets_multi = grouter.global_route(router_algo, false, MERGE_STAR);
+                auto gr_end_time = std::chrono::high_resolution_clock::now();
+                global_routing_time_sec_multi = std::chrono::duration_cast<std::chrono::duration<double>>(gr_end_time - gr_start_time).count();
+                std::cout << "Global routing for " << strategy << " completed in " << global_routing_time_sec_multi << "s. Unrouted: " << unrouted_nets_multi << std::endl;
+                grouter.save_global_routing_results(global_routing_results_file_multi);
+            }
+            else
+            {
+                // Similar to single_flow, optionally re-save if needed, but default is not to.
+                // std::cout << "Re-saving loaded GR for " << strategy << " to ensure consistency." << std::endl;
+                // grouter.save_global_routing_results(global_routing_results_file_multi);
+            }
 
             DetailedRouter dr(circuit, grouter);
             int drc_violations = dr.detailed_route(); // returns overflow count etc.
@@ -426,10 +514,13 @@ void run_multiple_strategies(const std::string &dataset_name, const std::string 
             }
             eval_out << "Dataset: " << dataset_name << std::endl;
             eval_out << "Placement Strategy: " << strategy << std::endl;
+            eval_out << "Routing Algorithm: " << cli_router_algo_str << std::endl;
+            eval_out << "Global Routing Loaded From File: " << (gr_loaded_from_file_multi ? "Yes" : "No") << std::endl;
+            eval_out << "Global Routing Time (seconds): " << std::fixed << std::setprecision(3) << global_routing_time_sec_multi << std::endl;
             eval_out << "Execution Time (seconds): " << std::fixed << std::setprecision(3) << execution_time_sec << std::endl;
             eval_out << "Total Movable Node Area: " << std::fixed << std::setprecision(2) << total_movable_area << std::endl;
             eval_out << "Total HPWL: " << std::fixed << std::setprecision(2) << total_hpwl << std::endl;
-            eval_out << "Unrouted Nets: " << unrouted_nets << std::endl;
+            eval_out << "Unrouted Nets: " << unrouted_nets_multi << std::endl;
             eval_out << "DRC Violations: " << drc_violations << std::endl;
             eval_out.close();
 
