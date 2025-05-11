@@ -4,6 +4,8 @@
 #include <sstream>
 #include <stdexcept>  // For exceptions
 #include <filesystem> // For path manipulation (C++17)
+#include <algorithm>
+#include <cctype>
 
 // Helper function to get the directory path from a full file path
 std::string get_dir_path(const std::string &file_path)
@@ -542,10 +544,213 @@ void Parser::parse_shapes(const std::string &file_path, Circuit &circuit)
 
 void Parser::parse_route(const std::string &file_path, Circuit &circuit)
 {
-    std::cout << "[Parser] Parsing routing grid: " << file_path << " (STUB)" << std::endl;
-    // TODO: Implement .route file parsing logic
-    // Read grid dimensions (x, y, layers)
-    // Read tile size, origin
-    // Read edge capacities, min width/spacing
-    // Populate Circuit.routing_grid
+    std::ifstream fin(file_path);
+    if (!fin)
+        throw std::runtime_error("Cannot open .route file: " + file_path);
+
+    auto &grid = circuit.routing_grid;
+    std::string line, key;
+
+    /* ---- helper: case-insensitive token ---- */
+    auto toLower = [](std::string s)
+    {
+        std::transform(s.begin(), s.end(), s.begin(),
+                       [](unsigned char c)
+                       { return std::tolower(c); });
+        return s;
+    };
+
+    /* -----------------------------------------------------------------
+       PASS 1 – grab geometry (grid size, origin, tile size, #layers)
+       -----------------------------------------------------------------*/
+    while (std::getline(fin, line))
+    {
+        if (line.empty() || line[0] == '#')
+            continue;
+
+        std::istringstream iss(line);
+        std::string keyword_token;
+        iss >> keyword_token; // Read the actual keyword token first
+        key = toLower(keyword_token);
+
+        char colon_char;
+
+        if (key == "grid")
+        { // grid   X  Y  L
+            if (iss >> colon_char && colon_char == ':')
+            {
+                iss >> grid.grid_x >> grid.grid_y >> grid.num_layers;
+            }
+            else
+            {
+                // Optional: Log a warning or throw an error for malformed "Grid" line
+                std::cerr << "[Parser] Warning: Malformed 'Grid' line: " << line << std::endl;
+            }
+        }
+        else if (key == "gridorigin") // Changed from "origin"
+        {                             // origin ox oy
+            if (iss >> colon_char && colon_char == ':')
+            {
+                iss >> grid.origin.x >> grid.origin.y;
+            }
+            else
+            {
+                // Optional: Log a warning or throw an error for malformed "GridOrigin" line
+                std::cerr << "[Parser] Warning: Malformed 'GridOrigin' line: " << line << std::endl;
+            }
+        }
+        else if (key == "tilesize") // Changed from "tile"
+        {                           // tile   wx wy
+            if (iss >> colon_char && colon_char == ':')
+            {
+                iss >> grid.tile_width >> grid.tile_height;
+            }
+            else
+            {
+                // Optional: Log a warning or throw an error for malformed "TileSize" line
+                std::cerr << "[Parser] Warning: Malformed 'TileSize' line: " << line << std::endl;
+            }
+        }
+        /*  minimum_width / minimum_spacing / via_spacing keywords
+            are parsed in pass-2 where we know they exist; fine to
+            ignore here. */
+    }
+
+    if (grid.grid_x <= 0 || grid.grid_y <= 0 || grid.num_layers <= 0)
+        throw std::runtime_error("Incomplete geometry in .route file: " +
+                                 file_path);
+
+    /* -----------------------------------------------------------------
+       allocate edge-capacity arrays
+       vertical_edges[l][y][x]   – edge on right of tile (x,y)
+       horizontal_edges[l][y][x] – edge on top  of tile (x,y)
+       -----------------------------------------------------------------*/
+    grid.vertical_edges.assign(
+        grid.num_layers,
+        std::vector<std::vector<RoutingTileEdge>>(
+            grid.grid_y, std::vector<RoutingTileEdge>(grid.grid_x)));
+
+    grid.horizontal_edges = grid.vertical_edges; // deep copy, same shape
+
+    /* default capacities per layer (initially 0) */
+    std::vector<int> defaultV(grid.num_layers, 0);
+    std::vector<int> defaultH(grid.num_layers, 0);
+
+    /* -----------------------------------------------------------------
+       PASS 2 – fill capacities, blockages, design-rule figures
+       -----------------------------------------------------------------*/
+    fin.clear();
+    fin.seekg(0, std::ios::beg);
+
+    while (std::getline(fin, line))
+    {
+        if (line.empty() || line[0] == '#')
+            continue;
+
+        std::istringstream iss(line);
+        iss >> key;
+        key = toLower(key);
+
+        /* ---- capacity lines ------------------------------------------------ */
+        if (key == "vertical_capacity" || key == "horizontal_capacity")
+        {
+            bool vertical = (key == "vertical_capacity");
+            std::vector<int> &target_defaults = vertical ? defaultV : defaultH;
+
+            // Peek to see if next char is ':' for global default line
+            if (iss.peek() == ':')
+            {
+                char colon;
+                iss >> colon; // consume the colon
+                // Read all capacity values for each layer
+                for (int l = 0; l < grid.num_layers; ++l)
+                {
+                    if (!(iss >> target_defaults[l]))
+                    {
+                        // If reading fails before all layers are read, it's an error or unexpected format
+                        throw std::runtime_error("Error: Not enough capacity values for all layers in " + file_path + " line: " + line);
+                    }
+                }
+            }
+            else
+            { // layer-specific override (e.g., "vertical_capacity  2 : 50")
+                int layerIdx /*1-based*/, cap;
+                char colon;
+                iss >> layerIdx >> colon >> cap;
+                if (layerIdx < 1 || layerIdx > grid.num_layers)
+                    throw std::runtime_error("Layer index out of range in " + file_path + " line: " + line);
+
+                target_defaults[layerIdx - 1] = cap;
+            }
+        }
+        /* ---- blockage rectangles ------------------------------------------ */
+        else if (key == "blockage")
+        {
+            // blockage  layer  xLo yLo xHi yHi  deltaCap
+            int layerIdx, x0, y0, x1, y1, delta;
+            iss >> layerIdx >> x0 >> y0 >> x1 >> y1 >> delta;
+            layerIdx -= 1; // convert to 0-based
+            if (layerIdx < 0 || layerIdx >= grid.num_layers)
+                continue;
+
+            x0 = std::max(0, x0);
+            y0 = std::max(0, y0);
+            x1 = std::min(grid.grid_x - 1, x1);
+            y1 = std::min(grid.grid_y - 1, y1);
+
+            for (int y = y0; y <= y1; ++y)
+            {
+                for (int x = x0; x <= x1; ++x)
+                {
+                    // clamp at zero
+                    auto &v = grid.vertical_edges[layerIdx][y][x].capacity;
+                    auto &h = grid.horizontal_edges[layerIdx][y][x].capacity;
+                    v = std::max(0, v - delta);
+                    h = std::max(0, h - delta);
+                }
+            }
+        }
+        /* ---- design-rule fields (optional) --------------------------------- */
+        else if (key == "minwirewidth") // Changed from minimum_width
+        {
+            iss >> grid.tile_width; // store in existing field for now - STILL PARSES ONLY FIRST VALUE
+        }
+        else if (key == "minwirespacing") // Changed from minimum_spacing
+        {
+            iss >> grid.tile_height; // store likewise (or add new fields) - STILL PARSES ONLY FIRST VALUE
+        }
+        else if (key == "viaspacing") // Changed from via_spacing
+        {
+            double viaSp;
+            iss >> viaSp; /* keep local for future use */ // STILL PARSES ONLY FIRST VALUE AND DISCARDS
+            (void)viaSp;
+        }
+    }
+
+    /* -----------------------------------------------------------------
+       Apply defaults to every edge that's still zero capacity
+       -----------------------------------------------------------------*/
+    for (int l = 0; l < grid.num_layers; ++l)
+    {
+        for (int y = 0; y < grid.grid_y; ++y)
+        {
+            for (int x = 0; x < grid.grid_x; ++x)
+            {
+                auto &vEdge = grid.vertical_edges[l][y][x].capacity;
+                auto &hEdge = grid.horizontal_edges[l][y][x].capacity;
+
+                if (vEdge == 0)
+                    vEdge = defaultV[l];
+                if (hEdge == 0)
+                    hEdge = defaultH[l];
+            }
+        }
+    }
+
+    /* ---- sanity print ----------------------------------------------------- */
+    std::cout << "[Parser] .route parsed – grid "
+              << grid.grid_x << "×" << grid.grid_y
+              << "×" << grid.num_layers << " layers"
+              << " | default Vcap " << defaultV[0]
+              << " Hcap " << defaultH[0] << '\n';
 }
